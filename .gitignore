@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# uploaded product images (folder kept via .gitkeep)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # production
 /build
 
