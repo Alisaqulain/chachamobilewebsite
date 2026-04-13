@@ -7,7 +7,7 @@ import { HOME_SHORTCUT_CATS } from "@/data/navCategories";
 import TiltCard from "@/components/TiltCard";
 
 function ShortcutCard({ item, index }) {
-  const href = `/shop?category=${encodeURIComponent(item.slug || item.filter)}`;
+  const href = `/shop?category=${encodeURIComponent(String(item.slug || item.filter || "").toLowerCase())}`;
 
   return (
     <motion.div

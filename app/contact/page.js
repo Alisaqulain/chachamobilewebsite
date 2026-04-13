@@ -9,9 +9,9 @@ const MAP_EMBED =
 export default function ContactPage() {
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,102,0,0.14),transparent_55%)]" />
-      <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px]" />
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,102,0,0.12),transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(255,102,0,0.14),transparent_55%)]" />
+      <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px] dark:bg-indigo-500/15" />
+      <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-24">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -19,17 +19,17 @@ export default function ContactPage() {
           className="max-w-2xl"
         >
           <p className="text-xs font-bold uppercase tracking-[0.35em] text-brand">Contact</p>
-          <h1 className="font-display mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="font-display mt-3 text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl lg:text-6xl">
             Let’s talk parts
           </h1>
-          <p className="mt-5 text-base leading-relaxed text-white/70 sm:text-lg">
+          <p className="mt-5 text-base leading-relaxed text-zinc-600 dark:text-white/75 sm:text-lg">
             Call, email, or WhatsApp — fast answers on availability, compatible SKUs, and bulk pricing.
           </p>
           <div className="mt-8 flex flex-wrap gap-2">
             {["Avg. reply under 10 min", "B2B bulk quotes", "Same-day dispatch zones"].map((chip) => (
               <span
                 key={chip}
-                className="rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600 shadow-sm backdrop-blur-sm"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-700 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-zinc-200"
               >
                 {chip}
               </span>
@@ -63,33 +63,33 @@ export default function ContactPage() {
                 href={row.href}
                 target={row.external ? "_blank" : undefined}
                 rel={row.external ? "noopener noreferrer" : undefined}
-                className="card-gradient-border surface-3d-hover block rounded-3xl bg-white/90 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.07)] backdrop-blur-xl transition hover:shadow-xl"
+                className="card-gradient-border block rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-[0_12px_48px_rgba(0,0,0,0.06)] backdrop-blur-xl transition hover:shadow-xl dark:border-white/10 dark:bg-zinc-900/90 dark:shadow-[0_12px_48px_rgba(0,0,0,0.35)]"
               >
-                <p className="text-xs font-semibold uppercase tracking-wider text-black/40">
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   {row.label}
                 </p>
-                <p className="mt-2 text-lg font-semibold text-black">{row.val}</p>
+                <p className="mt-2 text-lg font-semibold text-zinc-900 dark:text-white">{row.val}</p>
               </a>
             ))}
-            <div className="surface-3d-hover rounded-3xl border border-black/[0.06] bg-white/80 p-6 backdrop-blur-xl">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black/40">
+            <div className="rounded-3xl border border-zinc-200/90 bg-white/95 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/85">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Address
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-black/65">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
                 Chacha Mobile — India. Open the map for exact directions.
               </p>
               <a
                 href="https://maps.app.goo.gl/9GFzaknT5fP1aWAh9"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex rounded-2xl bg-black px-5 py-2.5 text-xs font-semibold text-brand"
+                className="mt-4 inline-flex rounded-2xl bg-brand px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-brand-dim"
               >
                 Open in Google Maps
               </a>
             </div>
             <Link
               href="/shop"
-              className="inline-flex rounded-2xl border border-white/25 px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:border-brand/50"
+              className="inline-flex rounded-2xl border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 transition hover:border-brand hover:text-brand dark:border-white/25 dark:text-white/90 dark:hover:border-brand/50"
             >
               ← Back to shop
             </Link>
@@ -99,7 +99,7 @@ export default function ContactPage() {
             initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.12 }}
-            className="overflow-hidden rounded-[2rem] border border-black/[0.06] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.08)]"
+            className="overflow-hidden rounded-[2rem] border border-zinc-200/90 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-zinc-900 dark:shadow-[0_24px_80px_rgba(0,0,0,0.4)]"
           >
             <iframe
               title="Chacha Mobile on Google Maps"

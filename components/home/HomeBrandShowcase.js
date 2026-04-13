@@ -77,7 +77,7 @@ export default function HomeBrandShowcase() {
           </p>
         </motion.div>
 
-        <div className="mt-14 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+        <div className="mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 lg:grid-cols-4 lg:gap-6 [&::-webkit-scrollbar]:hidden">
           {displayBrands.map((b, i) => {
             const isOpen = open === b._id;
             const meta = brandMeta[b.name] || brandMeta.Apple;
@@ -89,7 +89,7 @@ export default function HomeBrandShowcase() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-30px" }}
                 transition={{ delay: i * 0.08, duration: 0.45 }}
-                className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br shadow-md transition duration-300 ${
+                className={`relative w-[min(78vw,280px)] shrink-0 snap-center overflow-hidden rounded-2xl border bg-gradient-to-br shadow-md transition duration-300 sm:w-auto sm:shrink sm:snap-none ${
                   isOpen
                     ? "border-brand shadow-lg ring-1 ring-brand/25"
                     : "border-black/[0.08] hover:border-brand/35 hover:shadow-lg"

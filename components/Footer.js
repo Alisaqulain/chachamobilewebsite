@@ -84,7 +84,7 @@ export default function Footer() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
                 Explore
               </p>
-              <ul className="mt-4 space-y-2.5 text-sm text-white/65">
+              <ul className="mt-4 space-y-2.5 text-sm text-white/80">
                 <li>
                   <Link href="/shop" className="transition hover:text-white">
                     Shop
@@ -107,7 +107,7 @@ export default function Footer() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
                 Policies
               </p>
-              <ul className="mt-4 space-y-2.5 text-sm text-white/65">
+              <ul className="mt-4 space-y-2.5 text-sm text-white/80">
                 {policies.map((p) => (
                   <li key={p.href}>
                     <Link href={p.href} className="transition hover:text-white">

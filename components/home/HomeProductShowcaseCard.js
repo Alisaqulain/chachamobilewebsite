@@ -7,8 +7,6 @@ import { useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { buildWhatsAppUrl } from "@/utils/whatsapp";
 import { resolveProductCardImage } from "@/lib/partImages";
-import TiltCard from "@/components/TiltCard";
-
 function badgeClass(q) {
   if (q === "Original") return "bg-emerald-500/90 text-white ring-1 ring-white/30";
   if (q === "High" || q === "High Copy") return "bg-amber-500/95 text-black ring-1 ring-black/10";
@@ -40,9 +38,8 @@ export default function HomeProductShowcaseCard({ product, index = 0 }) {
       transition={{ duration: 0.5, delay: index * 0.06 }}
       className="group h-full"
     >
-      <TiltCard className="h-full">
       <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_6px_28px_rgba(0,0,0,0.07)] transition duration-300 group-hover:border-brand/35 group-hover:shadow-[0_14px_44px_rgba(0,0,0,0.1)]">
-        <Link href={`/product/${product._id}`} className="relative block aspect-[5/4] overflow-hidden bg-zinc-200 sm:aspect-[4/3]">
+        <Link href={`/product/${product._id}`} className="relative block aspect-[4/3] overflow-hidden bg-zinc-200 sm:aspect-[3/2]">
           <motion.div
             className="h-full w-full"
             whileHover={{ scale: 1.03 }}
@@ -53,7 +50,7 @@ export default function HomeProductShowcaseCard({ product, index = 0 }) {
               alt={product.name}
               fill
               className="object-cover"
-              sizes="(max-width:768px) 50vw, 25vw"
+              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
             />
           </motion.div>
           <span
@@ -90,7 +87,7 @@ export default function HomeProductShowcaseCard({ product, index = 0 }) {
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1600);
               }}
-              className="min-h-[42px] flex-1 rounded-xl bg-black py-2.5 text-center text-xs font-bold text-brand transition hover:bg-zinc-900 sm:min-h-[44px] sm:py-3 sm:text-sm"
+              className="min-h-[42px] flex-1 rounded-xl bg-brand py-2.5 text-center text-xs font-bold text-white transition hover:bg-brand-dim sm:min-h-[44px] sm:py-3 sm:text-sm"
             >
               {added ? "Added ✓" : "Add to cart"}
             </motion.button>
@@ -100,14 +97,13 @@ export default function HomeProductShowcaseCard({ product, index = 0 }) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
-              className="min-h-[42px] flex-1 rounded-xl border-2 border-black/10 bg-white py-2.5 text-center text-xs font-bold text-black transition hover:border-brand sm:min-h-[44px] sm:rounded-2xl sm:py-3 sm:text-sm"
+              className="min-h-[42px] flex-1 rounded-xl border-2 border-zinc-200 bg-white py-2.5 text-center text-xs font-bold text-zinc-800 transition hover:border-brand dark:border-white/15 dark:bg-zinc-900 dark:text-white sm:min-h-[44px] sm:rounded-2xl sm:py-3 sm:text-sm"
             >
               WhatsApp
             </motion.a>
           </div>
         </div>
       </div>
-      </TiltCard>
     </motion.article>
   );
 }

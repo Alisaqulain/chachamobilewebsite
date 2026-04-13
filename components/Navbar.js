@@ -69,24 +69,27 @@ export default function Navbar() {
     setQ("");
   };
 
-  const navIdle = scrolled
+  /** Solid bar + dark text on every route except home at top — avoids white-on-light or low-contrast nav on /shop etc. */
+  const solidNav = scrolled || pathname !== "/";
+
+  const navIdle = solidNav
     ? "text-black/65 hover:bg-black/[0.04]"
     : "text-white/88 hover:bg-white/12";
-  const brandTitle = scrolled ? "text-black" : "text-white";
-  const brandSub = scrolled ? "text-black/38" : "text-white/45";
-  const iconShell = scrolled
+  const brandTitle = solidNav ? "text-black" : "text-white";
+  const brandSub = solidNav ? "text-black/38" : "text-white/45";
+  const iconShell = solidNav
     ? "border-black/[0.08] bg-white/80 text-black/70 shadow-sm hover:border-brand/40 hover:text-black"
     : "border-white/25 bg-white/10 text-white shadow-none backdrop-blur-md hover:border-brand/45 hover:bg-white/15";
 
   return (
     <header
       className={`fixed left-0 right-0 top-0 z-[100] w-full border-b transition-[background-color,box-shadow,backdrop-filter,border-color] duration-500 ${
-        scrolled
+        solidNav
           ? "border-black/[0.06] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl"
           : "border-transparent shadow-none backdrop-blur-none bg-transparent"
       }`}
       style={
-        scrolled
+        solidNav
           ? undefined
           : {
               backgroundColor: "transparent",
@@ -98,7 +101,7 @@ export default function Navbar() {
     >
       <div
         className={`pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/70 to-transparent transition-opacity duration-500 ${
-          scrolled ? "opacity-100" : "opacity-0"
+          solidNav ? "opacity-100" : "opacity-0"
         }`}
         aria-hidden
       />
@@ -106,7 +109,7 @@ export default function Navbar() {
         <Link href="/" className="group flex shrink-0 items-center gap-3">
           <span
             className={`icon-3d-hover relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition duration-300 group-hover:shadow-[0_8px_32px_rgba(255,165,0,0.28)] ${
-              scrolled ? "border-black/[0.06] ring-1 ring-black/[0.04]" : "border-white/25 ring-1 ring-white/15"
+              solidNav ? "border-black/[0.06] ring-1 ring-black/[0.04]" : "border-white/25 ring-1 ring-white/15"
             }`}
           >
             <Image
@@ -136,7 +139,7 @@ export default function Navbar() {
           <Link
             href="/"
             className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
-              pathname === "/" ? "bg-black text-brand" : navIdle
+              pathname === "/" ? "bg-zinc-900 text-white hover:bg-zinc-800" : navIdle
             }`}
           >
             Home
@@ -144,7 +147,7 @@ export default function Navbar() {
           <Link
             href="/shop"
             className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
-              pathname === "/shop" ? "bg-black text-brand" : navIdle
+              pathname === "/shop" ? "bg-brand text-white shadow-sm hover:bg-brand-dim" : navIdle
             }`}
           >
             Shop
@@ -158,7 +161,7 @@ export default function Navbar() {
             <button
               type="button"
               className={`nav-pill-3d flex items-center gap-1 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
-                mega ? "bg-black text-brand" : navIdle
+                mega ? "bg-zinc-900 text-white" : navIdle
               }`}
               aria-expanded={mega}
               aria-haspopup="true"
@@ -185,7 +188,7 @@ export default function Navbar() {
                       {navCategories.map((cat) => (
                         <Link
                           key={cat.slug}
-                          href={`/shop?category=${encodeURIComponent(cat.slug)}`}
+                          href={`/shop?category=${encodeURIComponent(String(cat.slug || "").toLowerCase())}`}
                           className="surface-3d-hover group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/80 p-3 transition hover:border-brand/50 hover:bg-zinc-900 hover:shadow-[0_12px_36px_rgba(255,102,0,0.2)]"
                         >
                           <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-zinc-800">
@@ -215,7 +218,7 @@ export default function Navbar() {
           <Link
             href="/contact"
             className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
-              pathname === "/contact" ? "bg-black text-brand" : navIdle
+              pathname === "/contact" ? "bg-zinc-900 text-white hover:bg-zinc-800" : navIdle
             }`}
           >
             Contact
@@ -332,7 +335,7 @@ export default function Navbar() {
               {navCategories.map((c) => (
                 <Link
                   key={c.slug}
-                  href={`/shop?category=${encodeURIComponent(c.slug)}`}
+                  href={`/shop?category=${encodeURIComponent(String(c.slug || "").toLowerCase())}`}
                   className="block px-4 py-2 text-sm text-white/75 hover:bg-white/10"
                 >
                   {c.label}

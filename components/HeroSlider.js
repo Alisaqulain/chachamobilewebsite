@@ -8,7 +8,8 @@ import { buildWhatsAppUrl } from "@/utils/whatsapp";
 
 const HERO_VIDEO_SRC = "/Video_about_mobile_202604132324.mp4";
 
-const INTERVAL_MS = 7500;
+const INTERVAL_DESKTOP_MS = 7500;
+const INTERVAL_MOBILE_MS = 5200;
 
 const easeOut = [0.22, 1, 0.36, 1];
 
@@ -41,9 +42,13 @@ export default function HeroSlider() {
   const active = HERO_SLIDES[index] || HERO_SLIDES[0];
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const mobile = window.matchMedia("(max-width: 639px)").matches;
+    const ms = mobile ? INTERVAL_MOBILE_MS : INTERVAL_DESKTOP_MS;
     const id = setInterval(() => {
       setIndex((i) => (i + 1) % HERO_SLIDES.length);
-    }, INTERVAL_MS);
+    }, ms);
     return () => clearInterval(id);
   }, []);
 

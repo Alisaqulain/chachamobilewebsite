@@ -1,6 +1,6 @@
 /** Presets for slug → label, images, icons. Navbar/footer categories load from `/api/categories` and merge these defaults. */
 
-import { CATEGORY_SLUG_CARD_IMAGE, PART_IMAGE_POOLS } from "@/lib/partImages";
+import { CATEGORY_SLUG_CARD_IMAGE } from "@/lib/partImages";
 
 export const NAV_CATEGORIES = [
   {
@@ -63,7 +63,7 @@ export const HOME_SHORTCUT_CATS = [
     slug: "display",
     filter: "Display",
     blurb: "Glass & digitizer stacks",
-    image: PART_IMAGE_POOLS.display[2],
+    image: CATEGORY_SLUG_CARD_IMAGE.display,
     icon: "⎔",
   },
 ];

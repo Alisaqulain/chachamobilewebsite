@@ -14,10 +14,13 @@ function isMongoId(id) {
 }
 
 function badgeClass(q) {
-  if (q === "Original") return "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20";
-  if (q === "High" || q === "High Copy") return "bg-amber-500/15 text-amber-900 ring-amber-500/25";
-  if (q === "Low" || q === "Low Copy") return "bg-zinc-500/10 text-zinc-700 ring-zinc-500/15";
-  return "bg-zinc-500/10 text-zinc-700 ring-zinc-500/15";
+  if (q === "Original")
+    return "bg-emerald-500/15 text-emerald-900 ring-emerald-500/25 dark:bg-emerald-500/20 dark:text-emerald-100 dark:ring-emerald-400/30";
+  if (q === "High" || q === "High Copy")
+    return "bg-amber-500/20 text-amber-950 ring-amber-500/30 dark:bg-amber-500/25 dark:text-amber-50 dark:ring-amber-400/35";
+  if (q === "Low" || q === "Low Copy")
+    return "bg-zinc-500/15 text-zinc-800 ring-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-100 dark:ring-zinc-400/25";
+  return "bg-zinc-500/15 text-zinc-800 ring-zinc-500/20 dark:bg-zinc-500/20 dark:text-zinc-100 dark:ring-zinc-400/25";
 }
 
 function categoryLabel(product) {
@@ -107,14 +110,14 @@ export default function ShopProductQuickView({ product, onClose }) {
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="relative z-[201] flex max-h-[min(92dvh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-black/10 bg-white shadow-2xl sm:max-h-[min(88vh,820px)] sm:rounded-3xl"
+          className="relative z-[201] flex max-h-[min(92dvh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-zinc-200/90 bg-white shadow-2xl sm:max-h-[min(88vh,820px)] sm:rounded-3xl dark:border-white/10 dark:bg-zinc-950"
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-4 py-3 sm:px-6">
+          <div className="flex shrink-0 items-center justify-between border-b border-zinc-200/90 px-4 py-3 dark:border-white/10 sm:px-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Product details</p>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-2xl leading-none text-black/50 transition hover:bg-black/[0.05] hover:text-black"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-2xl leading-none text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Close"
             >
               ×
@@ -124,11 +127,13 @@ export default function ShopProductQuickView({ product, onClose }) {
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="grid gap-6 p-4 sm:gap-8 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
               <div className="space-y-3">
-                <div className="relative aspect-square overflow-hidden rounded-2xl border border-black/[0.06] bg-zinc-100">
+                <div className="relative aspect-square overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-100 dark:border-white/10 dark:bg-zinc-900">
                   {main ? (
                     <Image src={main} alt={p.name} fill className="object-cover" sizes="(max-width:1024px) 90vw, 400px" />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-black/40">No image</div>
+                    <div className="flex h-full items-center justify-center text-sm text-zinc-400 dark:text-zinc-500">
+                      No image
+                    </div>
                   )}
                   <span
                     className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 backdrop-blur-md ${badgeClass(p.quality)}`}
@@ -158,29 +163,36 @@ export default function ShopProductQuickView({ product, onClose }) {
                 {cat ? (
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{cat}</p>
                 ) : null}
-                <h2 id="qv-title" className="mt-1 text-xl font-bold leading-snug tracking-tight text-black sm:text-2xl">
+                <h2 id="qv-title" className="mt-1 text-xl font-bold leading-snug tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">
                   {p.name}
                 </h2>
-                <p className="mt-2 text-sm text-black/55">
+                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                   {p.brand}
                   {p.model ? ` · ${p.model}` : ""}
                 </p>
                 <div className="mt-4 flex flex-wrap items-baseline gap-2">
-                  <span className="text-2xl font-bold text-black sm:text-3xl">₹{unit.toLocaleString("en-IN")}</span>
+                  <span className="text-2xl font-bold text-zinc-900 dark:text-white sm:text-3xl">
+                    ₹{unit.toLocaleString("en-IN")}
+                  </span>
                   {qty > 1 ? (
-                    <span className="text-sm text-black/50">
-                      × {qty} = <span className="font-semibold text-black">₹{lineTotal.toLocaleString("en-IN")}</span>
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                      × {qty} ={" "}
+                      <span className="font-semibold text-zinc-900 dark:text-white">
+                        ₹{lineTotal.toLocaleString("en-IN")}
+                      </span>
                     </span>
                   ) : null}
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black/45">Quantity</p>
-                  <div className="mt-2 inline-flex items-center rounded-2xl border border-black/10 bg-zinc-50 p-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    Quantity
+                  </p>
+                  <div className="mt-2 inline-flex items-center rounded-2xl border border-zinc-200 bg-zinc-50 p-1 dark:border-white/12 dark:bg-zinc-900">
                     <button
                       type="button"
                       aria-label="Decrease quantity"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold text-black transition hover:bg-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold text-zinc-900 transition hover:bg-white dark:text-zinc-100 dark:hover:bg-zinc-800"
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
                     >
                       −
@@ -194,12 +206,12 @@ export default function ShopProductQuickView({ product, onClose }) {
                         const n = parseInt(e.target.value, 10);
                         setQty(Number.isFinite(n) && n >= 1 ? Math.min(999, n) : 1);
                       }}
-                      className="h-11 w-14 border-0 bg-transparent text-center text-base font-bold text-black outline-none"
+                      className="h-11 w-14 border-0 bg-transparent text-center text-base font-bold text-zinc-900 outline-none dark:text-zinc-100"
                     />
                     <button
                       type="button"
                       aria-label="Increase quantity"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold text-black transition hover:bg-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl text-lg font-semibold text-zinc-900 transition hover:bg-white dark:text-zinc-100 dark:hover:bg-zinc-800"
                       onClick={() => setQty((q) => Math.min(999, q + 1))}
                     >
                       +
@@ -215,7 +227,7 @@ export default function ShopProductQuickView({ product, onClose }) {
                       setCartFlash(true);
                       setTimeout(() => setCartFlash(false), 1800);
                     }}
-                    className="min-h-[48px] min-w-[160px] flex-1 rounded-2xl bg-black px-6 text-sm font-bold text-brand transition hover:bg-zinc-900 sm:flex-none"
+                    className="min-h-[48px] min-w-[160px] flex-1 rounded-2xl bg-brand px-6 text-sm font-bold text-white shadow-sm transition hover:bg-brand-dim sm:flex-none"
                   >
                     {cartFlash ? "Added to cart ✓" : "Add to cart"}
                   </button>
@@ -232,22 +244,26 @@ export default function ShopProductQuickView({ product, onClose }) {
                     </svg>
                   </a>
                 </div>
-                <p className="mt-2 text-xs text-black/45">WhatsApp opens with this product and quantity filled in.</p>
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  WhatsApp opens with this product and quantity filled in.
+                </p>
 
                 {p.description ? (
-                  <div className="mt-8 rounded-2xl border border-black/[0.06] bg-zinc-50/80 p-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-black/40">Description</h3>
-                    <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed text-black/70 whitespace-pre-wrap">
+                  <div className="mt-8 rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-4 dark:border-white/10 dark:bg-zinc-900/80">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      Description
+                    </h3>
+                    <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
                       {p.description}
                     </p>
                   </div>
                 ) : null}
 
-                <div className="mt-6 border-t border-black/10 pt-4">
+                <div className="mt-6 border-t border-zinc-200 pt-4 dark:border-white/10">
                   <Link
                     href={`/product/${p._id}`}
                     onClick={onClose}
-                    className="text-sm font-semibold text-brand-dim hover:underline"
+                    className="text-sm font-semibold text-brand-dim hover:underline dark:text-brand-bright"
                   >
                     Open full product page →
                   </Link>
