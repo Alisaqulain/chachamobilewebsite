@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useCart } from "./CartProvider";
 import { buildWhatsAppUrl } from "@/utils/whatsapp";
+import { resolveProductCardImage } from "@/lib/partImages";
+import TiltCard from "@/components/TiltCard";
 
 function badgeClass(q) {
   if (q === "Original") return "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20";
@@ -24,7 +26,7 @@ function categoryLabel(product) {
 export default function ProductCard({ product, index = 0 }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
-  const img = product.images?.[0];
+  const img = resolveProductCardImage(product);
   const cat = categoryLabel(product);
   const wa = buildWhatsAppUrl(
     `Hello Chacha Mobile, I want to order: ${product.name} (${product.brand} ${product.model}) — ₹${product.price}`
@@ -38,21 +40,18 @@ export default function ProductCard({ product, index = 0 }) {
       transition={{ duration: 0.45, delay: index * 0.05 }}
       className="h-full"
     >
-      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[#FFA500]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
+      <TiltCard className="h-full">
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition duration-300 hover:border-brand/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
         <Link href={`/product/${product._id}`} className="relative block aspect-[4/5] overflow-hidden bg-zinc-100">
-          {img ? (
-            <div className="h-full w-full overflow-hidden">
-              <Image
-                src={img}
-                alt={product.name}
-                fill
-                className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
-                sizes="(max-width:768px) 50vw, 33vw"
-              />
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-black/35">No image</div>
-          )}
+          <div className="h-full w-full overflow-hidden">
+            <Image
+              src={img}
+              alt={product.name}
+              fill
+              className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
+              sizes="(max-width:768px) 50vw, 33vw"
+            />
+          </div>
           <span
             className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 backdrop-blur-md ${badgeClass(product.quality)}`}
           >
@@ -62,10 +61,10 @@ export default function ProductCard({ product, index = 0 }) {
 
         <div className="flex flex-1 flex-col p-4 sm:p-5">
           {cat ? (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#FFA500]">{cat}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{cat}</p>
           ) : null}
           <Link href={`/product/${product._id}`}>
-            <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug tracking-tight text-black transition group-hover:text-[#cc7700]">
+            <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug tracking-tight text-black transition group-hover:text-brand-dim">
               {product.name}
             </h3>
           </Link>
@@ -86,7 +85,7 @@ export default function ProductCard({ product, index = 0 }) {
                 setAdded(true);
                 setTimeout(() => setAdded(false), 1600);
               }}
-              className="flex-1 rounded-xl bg-black py-2.5 text-center text-xs font-semibold text-[#FFA500] transition hover:bg-zinc-900"
+              className="flex-1 rounded-xl bg-black py-2.5 text-center text-xs font-semibold text-brand transition hover:bg-zinc-900"
             >
               {added ? "Added ✓" : "Add to cart"}
             </button>
@@ -94,13 +93,14 @@ export default function ProductCard({ product, index = 0 }) {
               href={wa}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-xl border border-black/10 bg-zinc-50 py-2.5 text-center text-xs font-semibold text-black transition hover:border-[#FFA500]/40"
+              className="flex-1 rounded-xl border border-black/10 bg-zinc-50 py-2.5 text-center text-xs font-semibold text-black transition hover:border-brand/40"
             >
               WhatsApp
             </a>
           </div>
         </div>
       </div>
+      </TiltCard>
     </motion.article>
   );
 }

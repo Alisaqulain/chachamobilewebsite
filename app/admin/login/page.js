@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
       <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-xl">
         <div className="mx-auto mb-6 flex justify-center">
-          <span className="relative flex h-20 w-20 overflow-hidden rounded-full border border-black/10 bg-white shadow-md ring-2 ring-[#FFA500]/25">
+          <span className="relative flex h-20 w-20 overflow-hidden rounded-full border border-black/10 bg-white shadow-md ring-2 ring-brand/25">
             <Image
               src="/logo.png"
               alt="Chacha Mobile"
@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+              className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
             />
           </div>
           <div>
@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+              className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
             />
           </div>
           {error && (
@@ -80,13 +80,13 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-black py-3 text-sm font-bold text-[#FFA500] transition hover:bg-black/90 disabled:opacity-60"
+            className="w-full rounded-full bg-black py-3 text-sm font-bold text-brand transition hover:bg-black/90 disabled:opacity-60"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
         <p className="mt-6 text-center text-xs text-black/45">
-          <Link href="/" className="font-semibold text-[#cc7700] hover:underline">
+          <Link href="/" className="font-semibold text-brand-dim hover:underline">
             ← Back to website
           </Link>
         </p>

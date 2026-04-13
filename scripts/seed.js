@@ -109,10 +109,26 @@ async function main() {
     { name: "Camera", slug: "camera" },
   ];
 
+  /** Keep in sync with `lib/partImages.js` CATEGORY_SLUG_CARD_IMAGE (Unsplash). */
+  const CATEGORY_IMAGES = {
+    display:
+      "https://images.unsplash.com/photo-1592899677859-90f0c5d7c0c8?auto=format&fit=crop&w=500&q=82",
+    battery:
+      "https://images.unsplash.com/photo-1601784555128-393f09b9b0a5?auto=format&fit=crop&w=500&q=82",
+    "charging-jack":
+      "https://images.unsplash.com/photo-1583394837333-0879db6f85fa?auto=format&fit=crop&w=500&q=82",
+    "folder-body":
+      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=500&q=82",
+    speaker:
+      "https://images.unsplash.com/photo-1556656793-08538906a9fa?auto=format&fit=crop&w=500&q=82",
+    camera:
+      "https://images.unsplash.com/photo-1609091839311-5367944d3491?auto=format&fit=crop&w=500&q=82",
+  };
+
   for (const c of defaults) {
     await Category.findOneAndUpdate(
       { slug: c.slug },
-      { $setOnInsert: { name: c.name, slug: c.slug } },
+      { $set: { name: c.name, slug: c.slug, image: CATEGORY_IMAGES[c.slug] || "" } },
       { upsert: true, new: true }
     );
   }

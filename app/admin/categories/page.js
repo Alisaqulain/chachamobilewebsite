@@ -129,7 +129,7 @@ export default function AdminCategoriesPage() {
         <button
           type="button"
           onClick={openAdd}
-          className="inline-flex items-center justify-center rounded-full bg-[#FFA500] px-5 py-2.5 text-sm font-bold text-black shadow-md hover:bg-[#e69500]"
+          className="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-black shadow-md hover:bg-brand-dim"
         >
           + Add category
         </button>
@@ -170,7 +170,7 @@ export default function AdminCategoriesPage() {
                     <button
                       type="button"
                       onClick={() => openEdit(c)}
-                      className="font-semibold text-[#cc7700] hover:underline"
+                      className="font-semibold text-brand-dim hover:underline"
                     >
                       Edit
                     </button>
@@ -222,7 +222,7 @@ export default function AdminCategoriesPage() {
                       slug: editingId ? f.slug : slugify(name),
                     }));
                   }}
-                  className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+                  className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <div>
@@ -230,7 +230,7 @@ export default function AdminCategoriesPage() {
                 <input
                   value={form.slug}
                   onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))}
-                  className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm font-mono outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+                  className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm font-mono outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
                 />
               </div>
               <div>
@@ -261,7 +261,7 @@ export default function AdminCategoriesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-full bg-black px-6 py-2.5 text-sm font-bold text-[#FFA500] disabled:opacity-60"
+                  className="rounded-full bg-black px-6 py-2.5 text-sm font-bold text-brand disabled:opacity-60"
                 >
                   {saving ? "Saving…" : "Save"}
                 </button>

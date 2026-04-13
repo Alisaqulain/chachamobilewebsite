@@ -1,13 +1,14 @@
 /** Presets for slug → label, images, icons. Navbar/footer categories load from `/api/categories` and merge these defaults. */
 
+import { CATEGORY_SLUG_CARD_IMAGE, PART_IMAGE_POOLS } from "@/lib/partImages";
+
 export const NAV_CATEGORIES = [
   {
     label: "Display / Touch",
     slug: "display",
     filter: "Display",
     blurb: "AMOLED, LCD & digitizers",
-    image:
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE.display,
     icon: "◫",
   },
   {
@@ -15,8 +16,7 @@ export const NAV_CATEGORIES = [
     slug: "battery",
     filter: "Battery",
     blurb: "Cells & BMS-safe packs",
-    image:
-      "https://images.unsplash.com/photo-1601784555128-393f09b9b0a5?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE.battery,
     icon: "⌁",
   },
   {
@@ -24,8 +24,7 @@ export const NAV_CATEGORIES = [
     slug: "charging-jack",
     filter: "Charging",
     blurb: "Ports, flexes & boards",
-    image:
-      "https://images.unsplash.com/photo-1583394837333-0879db6f85fa?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE["charging-jack"],
     icon: "⎓",
   },
   {
@@ -33,8 +32,7 @@ export const NAV_CATEGORIES = [
     slug: "folder-body",
     filter: "Body",
     blurb: "Frames, glass & chassis",
-    image:
-      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE["folder-body"],
     icon: "▢",
   },
   {
@@ -42,8 +40,7 @@ export const NAV_CATEGORIES = [
     slug: "speaker",
     filter: "Speaker",
     blurb: "Buzzers & earpieces",
-    image:
-      "https://images.unsplash.com/photo-1556656793-08538906a9fa?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE.speaker,
     icon: "◎",
   },
   {
@@ -51,8 +48,7 @@ export const NAV_CATEGORIES = [
     slug: "camera",
     filter: "Camera",
     blurb: "Front & rear modules",
-    image:
-      "https://images.unsplash.com/photo-1609091839311-5367944d3491?auto=format&fit=crop&w=400&q=80",
+    image: CATEGORY_SLUG_CARD_IMAGE.camera,
     icon: "◉",
   },
 ];
@@ -67,8 +63,7 @@ export const HOME_SHORTCUT_CATS = [
     slug: "display",
     filter: "Display",
     blurb: "Glass & digitizer stacks",
-    image:
-      "https://images.unsplash.com/photo-1592899677859-90f0c5d7c0c8?auto=format&fit=crop&w=400&q=80",
+    image: PART_IMAGE_POOLS.display[2],
     icon: "⎔",
   },
 ];

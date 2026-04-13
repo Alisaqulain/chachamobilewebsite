@@ -17,7 +17,7 @@ function FloatingKnot() {
       <mesh ref={mesh} scale={1.05}>
         <torusKnotGeometry args={[0.52, 0.19, 128, 32]} />
         <meshPhysicalMaterial
-          color="#FFA500"
+          color="#ff6600"
           metalness={0.55}
           roughness={0.22}
           clearcoat={1}
@@ -44,7 +44,7 @@ function SecondaryOrb() {
         color="#ffffff"
         metalness={0.35}
         roughness={0.25}
-        emissive="#FFA500"
+        emissive="#ff6600"
         emissiveIntensity={0.08}
       />
     </mesh>
@@ -66,7 +66,7 @@ export default function Hero3DScene() {
     >
       <ambientLight intensity={0.4} />
       <spotLight position={[8, 8, 6]} intensity={1.1} angle={0.35} penumbra={0.9} castShadow />
-      <pointLight position={[-4, 2, 2]} intensity={0.6} color="#FFA500" />
+      <pointLight position={[-4, 2, 2]} intensity={0.6} color="#ff6600" />
       <FloatingKnot />
       <SecondaryOrb />
       <Sparkles
@@ -76,7 +76,7 @@ export default function Hero3DScene() {
         size={1.8}
         speed={0.25}
         opacity={0.45}
-        color="#FFA500"
+        color="#ff6600"
       />
     </Canvas>
   );

@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
               <p className="mt-2 text-4xl font-black text-black">{data.productCount}</p>
               <Link
                 href="/admin/products"
-                className="mt-4 inline-block text-sm font-semibold text-[#cc7700] hover:underline"
+                className="mt-4 inline-block text-sm font-semibold text-brand-dim hover:underline"
               >
                 Manage products →
               </Link>
@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
               <p className="mt-2 text-4xl font-black text-black">{data.categoryCount}</p>
               <Link
                 href="/admin/categories"
-                className="mt-4 inline-block text-sm font-semibold text-[#cc7700] hover:underline"
+                className="mt-4 inline-block text-sm font-semibold text-brand-dim hover:underline"
               >
                 Manage categories →
               </Link>
@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
           <div className="mt-10">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-bold text-black">Recent products</h2>
-              <Link href="/admin/products" className="text-sm font-semibold text-[#cc7700] hover:underline">
+              <Link href="/admin/products" className="text-sm font-semibold text-brand-dim hover:underline">
                 View all
               </Link>
             </div>
@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
                         </div>
                       </td>
                       <td className="max-w-[200px] px-4 py-3 font-medium text-black">
-                        <Link href={`/admin/products/${p._id}/edit`} className="hover:text-[#cc7700] hover:underline">
+                        <Link href={`/admin/products/${p._id}/edit`} className="hover:text-brand-dim hover:underline">
                           {p.name}
                         </Link>
                       </td>

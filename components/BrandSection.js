@@ -15,7 +15,7 @@ function BrandPanel({ brand, active, onToggle, goShop }) {
       layout
       className={`relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow] duration-300 ${
         isOpen
-          ? "border-[#FFA500]/50 shadow-[0_12px_40px_rgba(255,165,0,0.15)]"
+          ? "border-brand/50 shadow-[0_12px_40px_rgba(255,102,0,0.15)]"
           : "border-black/[0.06] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:border-black/12 hover:shadow-[0_10px_32px_rgba(0,0,0,0.07)]"
       }`}
     >
@@ -52,7 +52,7 @@ function BrandPanel({ brand, active, onToggle, goShop }) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => goShop(brand, model)}
-                  className="rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-left text-sm font-medium text-black/80 shadow-sm transition hover:border-[#FFA500]/45 hover:text-black"
+                  className="surface-3d-hover rounded-2xl border border-black/[0.06] bg-white px-4 py-3 text-left text-sm font-medium text-black/80 shadow-sm transition hover:border-brand/45 hover:text-black"
                 >
                   {model}
                 </motion.button>
@@ -86,7 +86,7 @@ export default function BrandSection() {
         transition={{ duration: 0.5 }}
         className="text-center"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFA500]">Brands</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Brands</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight text-black sm:text-4xl">Shop by brand</h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-black/55 sm:text-base">
           Expand a brand, pick a model — the shop opens with filters applied.

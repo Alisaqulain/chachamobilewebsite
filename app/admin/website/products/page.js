@@ -26,7 +26,7 @@ export default function WebsiteAdminProductsPage() {
           </button>
           <button
             type="button"
-            className="rounded-2xl bg-black px-5 py-2.5 text-sm font-semibold text-[#FFA500] shadow-md"
+            className="rounded-2xl bg-black px-5 py-2.5 text-sm font-semibold text-brand shadow-md"
           >
             + Add product
           </button>
@@ -60,7 +60,7 @@ export default function WebsiteAdminProductsPage() {
                   </span>
                 </td>
                 <td className="px-5 py-4 text-right">
-                  <button type="button" className="text-xs font-semibold text-[#cc7700] hover:underline">
+                  <button type="button" className="text-xs font-semibold text-brand-dim hover:underline">
                     Edit
                   </button>
                 </td>

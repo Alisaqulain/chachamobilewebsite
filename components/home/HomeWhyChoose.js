@@ -55,10 +55,15 @@ const perks = [
 
 export default function HomeWhyChoose() {
   return (
-    <section className="relative overflow-hidden border-y border-black/[0.06] bg-white py-16 sm:py-20 lg:py-28">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_0%,rgba(255,165,0,0.04)_40%,transparent_70%)]" />
-      <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-[#FFA500]/12 blur-[90px]" />
-      <div className="pointer-events-none absolute -left-20 bottom-10 h-64 w-64 rounded-full bg-black/[0.04] blur-[80px]" />
+    <section className="relative overflow-hidden border-y border-white/[0.06] bg-gradient-to-b from-zinc-900 via-zinc-900 to-black py-16 sm:py-20 lg:py-28">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(255,102,0,0.12),transparent)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <motion.div
@@ -68,8 +73,8 @@ export default function HomeWhyChoose() {
           transition={{ duration: 0.5 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#FFA500]">Why choose us</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-black sm:text-4xl lg:text-5xl">
+          <p className="text-xs font-bold uppercase tracking-[0.4em] text-brand">Why choose us</p>
+          <h2 className="font-display mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Built like a supply partner — not a faceless listing
           </h2>
         </motion.div>
@@ -83,16 +88,19 @@ export default function HomeWhyChoose() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ delay: i * 0.07, duration: 0.45 }}
               whileHover={{
-                y: -10,
-                boxShadow: "0 28px 60px rgba(255,165,0,0.18)",
-                transition: { duration: 0.25 },
+                y: -12,
+                rotateX: 4,
+                rotateY: i % 2 === 0 ? -2 : 2,
+                boxShadow: "0 28px 60px rgba(255,102,0,0.18)",
+                transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
               }}
+              style={{ transformStyle: "preserve-3d", transformPerspective: 1000 }}
               className="relative overflow-hidden rounded-3xl border border-black/[0.07] bg-gradient-to-b from-zinc-50 to-white p-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)]"
             >
               <motion.div
                 animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: i * 0.35 }}
-                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFA500]/20 text-[#b35c00]"
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/20 text-brand-dim"
               >
                 {item.icon}
               </motion.div>

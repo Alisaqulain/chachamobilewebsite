@@ -56,7 +56,7 @@ export default function AdminProductsPage() {
               <>
                 Filtered by category slug:{" "}
                 <span className="font-mono font-semibold text-black">{categorySlug}</span> ·{" "}
-                <Link href="/admin/products" className="text-[#cc7700] hover:underline">
+                <Link href="/admin/products" className="text-brand-dim hover:underline">
                   Clear
                 </Link>
               </>
@@ -67,7 +67,7 @@ export default function AdminProductsPage() {
         </div>
         <Link
           href="/admin/products/new"
-          className="inline-flex items-center justify-center rounded-full bg-[#FFA500] px-5 py-2.5 text-sm font-bold text-black shadow-md hover:bg-[#e69500]"
+          className="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-black shadow-md hover:bg-brand-dim"
         >
           + Add product
         </Link>
@@ -119,7 +119,7 @@ export default function AdminProductsPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/products/${p._id}/edit`}
-                      className="font-semibold text-[#cc7700] hover:underline"
+                      className="font-semibold text-brand-dim hover:underline"
                     >
                       Edit
                     </Link>

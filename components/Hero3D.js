@@ -6,7 +6,7 @@ const Hero3DScene = dynamic(() => import("./Hero3DScene"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center">
-      <div className="h-32 w-32 animate-pulse rounded-full bg-[#FFA500]/15 blur-2xl" />
+      <div className="h-32 w-32 animate-pulse rounded-full bg-brand/15 blur-2xl" />
     </div>
   ),
 });

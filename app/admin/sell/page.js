@@ -25,7 +25,7 @@ export default function SellAdminPage() {
           className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFA500]">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">
               Sell workspace
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Orders & revenue</h1>
@@ -35,7 +35,7 @@ export default function SellAdminPage() {
           </div>
           <Link
             href="/admin"
-            className="text-sm font-semibold text-[#FFA500] hover:underline"
+            className="text-sm font-semibold text-brand hover:underline"
           >
             ← Back to hub
           </Link>
@@ -56,7 +56,7 @@ export default function SellAdminPage() {
             >
               <p className="text-xs font-medium uppercase tracking-wider text-white/45">{k.label}</p>
               <p className="mt-2 text-3xl font-semibold text-white">{k.value}</p>
-              <p className="mt-1 text-xs text-[#FFA500]/90">{k.sub}</p>
+              <p className="mt-1 text-xs text-brand/90">{k.sub}</p>
             </motion.div>
           ))}
         </div>
@@ -73,7 +73,7 @@ export default function SellAdminPage() {
               {orders.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-4">
                   <div>
-                    <p className="font-mono text-sm text-[#FFA500]">{o.id}</p>
+                    <p className="font-mono text-sm text-brand">{o.id}</p>
                     <p className="text-sm text-white/70">{o.customer}</p>
                   </div>
                   <div className="text-right">

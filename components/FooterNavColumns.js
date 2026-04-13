@@ -21,7 +21,7 @@ export default function FooterNavColumns() {
   return (
     <>
       <div className="col-span-2 sm:col-span-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">Categories</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Categories</p>
         <ul className="mt-4 columns-2 gap-x-4 text-sm text-white/65 sm:columns-1">
           {categories.map((c) => (
             <li key={c.slug} className="mb-2 break-inside-avoid">
@@ -36,7 +36,7 @@ export default function FooterNavColumns() {
         </ul>
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">Brands</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Brands</p>
         <ul className="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1 text-sm text-white/65 sm:max-h-none">
           {brandRows.map((b) => {
             const id = isLikelyObjectId(b._id) ? b._id : null;

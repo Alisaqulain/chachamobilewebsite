@@ -123,9 +123,9 @@ export default function ShopClient() {
   const FilterSidebar = (
     <motion.aside
       initial={false}
-      className="rounded-3xl border border-black/[0.06] bg-white/90 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl lg:sticky lg:top-24 lg:self-start"
+      className="surface-3d-hover rounded-3xl border border-black/[0.06] bg-white/90 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl lg:sticky lg:top-24 lg:self-start"
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">Filters</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Filters</p>
       <div className="mt-6 space-y-5">
         <div>
           <label className="text-[11px] font-semibold uppercase tracking-wider text-black/40">
@@ -134,7 +134,7 @@ export default function ShopClient() {
           <select
             value={categorySlug}
             onChange={onCategoryChange}
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-[#FFA500]/20"
+            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-brand/20"
           >
             <option value="">All</option>
             {meta.categories.map((c) => (
@@ -151,7 +151,7 @@ export default function ShopClient() {
           <select
             value={brandId}
             onChange={onBrandChange}
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-[#FFA500]/20"
+            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-brand/20"
           >
             <option value="">All</option>
             {meta.brands.map((b) => (
@@ -169,7 +169,7 @@ export default function ShopClient() {
             value={modelId}
             onChange={onModelChange}
             disabled={!brandId}
-            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-[#FFA500]/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-2 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-medium outline-none transition focus:ring-4 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">All</option>
             {modelsForBrand.map((m) => (
@@ -183,7 +183,7 @@ export default function ShopClient() {
           type="button"
           onClick={clearFilters}
           disabled={!hasActiveFilters}
-          className="w-full rounded-2xl border border-black/10 py-3 text-sm font-semibold text-black/70 transition hover:border-[#FFA500]/40 hover:text-black disabled:opacity-40"
+          className="w-full rounded-2xl border border-black/10 py-3 text-sm font-semibold text-black/70 transition hover:border-brand/40 hover:text-black disabled:opacity-40"
         >
           Clear filters
         </button>
@@ -192,34 +192,47 @@ export default function ShopClient() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+    <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+      <div className="pointer-events-none absolute -left-20 -top-10 h-56 w-56 rounded-full bg-brand/15 blur-[90px]" />
+      <div className="pointer-events-none absolute -right-16 top-20 h-48 w-48 rounded-full bg-accent/10 blur-[80px]" />
+
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+        className="surface-3d-hover relative flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-gradient-to-br from-white via-zinc-50/80 to-white p-8 shadow-[0_24px_80px_rgba(0,0,0,0.06)] sm:flex-row sm:items-end sm:justify-between sm:p-10"
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFA500]">Shop</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
+          <p className="text-xs font-bold uppercase tracking-[0.35em] text-brand">Shop</p>
+          <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl lg:text-5xl">
             Premium spare parts
           </h1>
-          <p className="mt-2 max-w-xl text-sm text-black/55">
-            Live catalogue from MongoDB — filters update instantly. Combine brand, model, and category
-            like Flipkart or Amazon.
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-zinc-600 sm:text-base">
+            Live catalogue — filters sync to the URL. Stack brand, model, and category the same way you
+            would on a consumer marketplace, tuned for parts SKUs.
           </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {["Quick view", "WhatsApp checkout", "Grade labels"].map((c) => (
+              <span
+                key={c}
+                className="rounded-full bg-zinc-900/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-600 ring-1 ring-zinc-900/10"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
         <button
           type="button"
           onClick={() => setMobileFilters((v) => !v)}
-          className="inline-flex items-center justify-center rounded-2xl border border-black/10 bg-white px-5 py-3 text-sm font-semibold shadow-sm lg:hidden"
+          className="inline-flex shrink-0 items-center justify-center rounded-2xl border-2 border-zinc-900 bg-zinc-900 px-6 py-3 text-sm font-bold text-brand shadow-md transition hover:bg-zinc-800 lg:hidden"
         >
           {mobileFilters ? "Hide filters" : "Filters"}
         </button>
       </motion.div>
 
       {loadError && (
-        <p className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p className="mt-6 rounded-2xl border border-red-400/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
           {loadError}
         </p>
       )}
@@ -237,11 +250,11 @@ export default function ShopClient() {
           name="q"
           defaultValue={search}
           placeholder="Search name, model, brand…"
-          className="min-w-0 flex-1 rounded-2xl border border-black/10 bg-white/90 px-5 py-3 text-sm shadow-inner outline-none transition focus:ring-4 focus:ring-[#FFA500]/20"
+          className="min-w-0 flex-1 rounded-2xl border border-black/10 bg-white/90 px-5 py-3 text-sm shadow-inner outline-none transition focus:ring-4 focus:ring-brand/20"
         />
         <button
           type="submit"
-          className="rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-[#FFA500] transition hover:bg-black/90"
+          className="btn-3d-pop rounded-2xl bg-black px-6 py-3 text-sm font-semibold text-brand transition hover:bg-black/90"
         >
           Search
         </button>
@@ -264,7 +277,7 @@ export default function ShopClient() {
         </AnimatePresence>
 
         <div>
-          <p className="mb-4 text-sm text-black/50">
+          <p className="mb-4 text-sm text-white/55">
             {loading ? "Loading…" : `${filtered.length} product${filtered.length === 1 ? "" : "s"}`}
             {hasActiveFilters && !loading ? " · filters active" : ""}
           </p>
@@ -278,7 +291,7 @@ export default function ShopClient() {
               className={`grid gap-6 sm:grid-cols-2 xl:grid-cols-3 ${pending ? "opacity-70" : ""}`}
             >
               {!loading && filtered.length === 0 ? (
-                <p className="col-span-full rounded-3xl border border-dashed border-black/15 bg-zinc-50/80 py-16 text-center text-sm text-black/50">
+                <p className="surface-3d-hover col-span-full rounded-3xl border border-dashed border-white/20 bg-white/[0.06] py-16 text-center text-sm text-white/60">
                   No products match these filters.
                 </p>
               ) : (

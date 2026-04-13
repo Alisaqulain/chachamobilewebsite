@@ -31,7 +31,7 @@ export default function WebsiteAdminCategoriesPage() {
         </div>
         <Link
           href="/admin/categories"
-          className="rounded-2xl bg-black px-5 py-2.5 text-center text-sm font-semibold text-[#FFA500]"
+          className="rounded-2xl bg-black px-5 py-2.5 text-center text-sm font-semibold text-brand"
         >
           Manage in admin
         </Link>
@@ -62,13 +62,13 @@ export default function WebsiteAdminCategoriesPage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link
                   href={`/shop?category=${encodeURIComponent(c.slug)}`}
-                  className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black hover:border-[#FFA500]/50"
+                  className="rounded-full border border-black/10 px-4 py-2 text-xs font-semibold text-black hover:border-brand/50"
                 >
                   View on shop
                 </Link>
                 <Link
                   href={`/admin/products?category=${encodeURIComponent(c.slug)}`}
-                  className="rounded-full bg-[#FFA500] px-4 py-2 text-xs font-bold text-black"
+                  className="rounded-full bg-brand px-4 py-2 text-xs font-bold text-black"
                 >
                   Admin products
                 </Link>

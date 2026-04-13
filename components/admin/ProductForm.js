@@ -139,7 +139,7 @@ export default function ProductForm({ productId, initial }) {
           required
           value={form.name}
           onChange={(e) => setField("name", e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
         />
       </div>
 
@@ -149,7 +149,7 @@ export default function ProductForm({ productId, initial }) {
           required
           value={form.brandId}
           onChange={(e) => setField("brandId", e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
         >
           <option value="" disabled>
             Select brand
@@ -169,7 +169,7 @@ export default function ProductForm({ productId, initial }) {
           value={form.modelId}
           onChange={(e) => setField("modelId", e.target.value)}
           disabled={!form.brandId}
-          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30 disabled:opacity-50"
+          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 disabled:opacity-50"
         >
           <option value="" disabled>
             {form.brandId ? "Select model" : "Select brand first"}
@@ -188,7 +188,7 @@ export default function ProductForm({ productId, initial }) {
           required
           value={form.categoryId}
           onChange={(e) => setField("categoryId", e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
         >
           <option value="" disabled>
             Select category
@@ -211,7 +211,7 @@ export default function ProductForm({ productId, initial }) {
             step={1}
             value={form.price}
             onChange={(e) => setField("price", e.target.value)}
-            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
           />
         </div>
         <div>
@@ -220,7 +220,7 @@ export default function ProductForm({ productId, initial }) {
             required
             value={form.quality}
             onChange={(e) => setField("quality", e.target.value)}
-            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
           >
             {qualities.map((q) => (
               <option key={q} value={q}>
@@ -237,7 +237,7 @@ export default function ProductForm({ productId, initial }) {
           rows={5}
           value={form.description}
           onChange={(e) => setField("description", e.target.value)}
-          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500] focus:ring-2 focus:ring-[#FFA500]/30"
+          className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
         />
       </div>
 
@@ -276,7 +276,7 @@ export default function ProductForm({ productId, initial }) {
           type="checkbox"
           checked={form.featured}
           onChange={(e) => setField("featured", e.target.checked)}
-          className="h-4 w-4 accent-[#FFA500]"
+          className="h-4 w-4 accent-brand"
         />
         Featured on home page
       </label>
@@ -285,7 +285,7 @@ export default function ProductForm({ productId, initial }) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-full bg-black px-6 py-2.5 text-sm font-bold text-[#FFA500] disabled:opacity-60"
+          className="rounded-full bg-black px-6 py-2.5 text-sm font-bold text-brand disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save product"}
         </button>

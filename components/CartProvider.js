@@ -7,6 +7,7 @@ import {
   useMemo,
   useSyncExternalStore,
 } from "react";
+import { resolveProductCardImage } from "@/lib/partImages";
 
 const STORAGE_KEY = "chacha-mobile-cart";
 
@@ -96,7 +97,7 @@ export function CartProvider({ children }) {
             name: product.name,
             price: Number(product.price) || 0,
             qty,
-            image: product.images?.[0] || "",
+            image: resolveProductCardImage(product),
             model: product.model || "",
             quality: product.quality || "",
           },

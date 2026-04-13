@@ -33,7 +33,7 @@ export default function WebsiteAdminDashboardPage() {
           >
             <p className="text-xs font-medium uppercase tracking-wider text-black/40">{s.label}</p>
             <p className="mt-2 text-3xl font-semibold text-black">{s.value}</p>
-            <p className="mt-1 text-xs text-[#cc7700]">{s.delta}</p>
+            <p className="mt-1 text-xs text-brand-dim">{s.delta}</p>
           </motion.div>
         ))}
       </div>

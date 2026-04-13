@@ -71,13 +71,13 @@ export default function AdminBrandsPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-[#FFA500]"
+            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
             placeholder="e.g. Apple"
           />
         </div>
         <button
           type="submit"
-          className="rounded-full bg-[#FFA500] px-6 py-2.5 text-sm font-bold text-black"
+          className="rounded-full bg-brand px-6 py-2.5 text-sm font-bold text-black"
         >
           Add
         </button>

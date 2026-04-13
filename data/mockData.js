@@ -1,5 +1,7 @@
 /** Premium storefront mock catalogue (frontend demo). */
 
+import { productPlaceholderImages } from "@/lib/partImages";
+
 export const BRAND_MODELS = {
   Apple: ["iPhone 15 Pro", "iPhone 14", "iPhone 13", "iPhone 12"],
   Samsung: ["Galaxy S24 Ultra", "Galaxy A55", "Galaxy M34"],
@@ -17,17 +19,6 @@ export const MOCK_CATEGORIES = [
   "Body",
 ];
 
-const U = [
-  "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1601784555128-393f09b9b0a5?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1583394837333-0879db6f85fa?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1556656793-08538906a9fa?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1609091839311-5367944d3491?auto=format&fit=crop&w=900&q=80",
-];
-
-const pick = (i) => [U[i % U.length]];
-
 export const MOCK_PRODUCTS = [
   {
     _id: "mock-1",
@@ -38,7 +29,11 @@ export const MOCK_PRODUCTS = [
     quality: "Original",
     price: 18999,
     featured: true,
-    images: pick(0),
+    images: productPlaceholderImages({
+      _id: "mock-1",
+      name: "AMOLED Display Assembly — iPhone 15 Pro",
+      category: "Display",
+    }),
     description:
       "Premium OLED panel with True Tone support. Factory-grade adhesive frame included for professional fitment.",
   },
@@ -51,7 +46,11 @@ export const MOCK_PRODUCTS = [
     quality: "Original",
     price: 3499,
     featured: true,
-    images: pick(1),
+    images: productPlaceholderImages({
+      _id: "mock-2",
+      name: "Li-Ion Battery — Galaxy S24 Ultra",
+      category: "Battery",
+    }),
     description: "OEM-class cell with BMS protection. Zero-cycle stock for technicians.",
   },
   {
@@ -63,7 +62,11 @@ export const MOCK_PRODUCTS = [
     quality: "High",
     price: 890,
     featured: true,
-    images: pick(2),
+    images: productPlaceholderImages({
+      _id: "mock-3",
+      name: "USB-C Charge Port Flex — V29 Pro",
+      category: "Charging",
+    }),
     description: "Fast-charge capable flex. Mic and secondary sensors routed.",
   },
   {
@@ -75,7 +78,11 @@ export const MOCK_PRODUCTS = [
     quality: "Original",
     price: 6200,
     featured: true,
-    images: pick(3),
+    images: productPlaceholderImages({
+      _id: "mock-4",
+      name: "Rear Camera Module — Reno 11",
+      category: "Camera",
+    }),
     description: "50MP main + ultrawide assembly. AF calibration ready.",
   },
   {
@@ -87,7 +94,11 @@ export const MOCK_PRODUCTS = [
     quality: "High",
     price: 650,
     featured: false,
-    images: pick(4),
+    images: productPlaceholderImages({
+      _id: "mock-5",
+      name: "Earpiece + Proximity Flex — iPhone 14",
+      category: "Speaker",
+    }),
     description: "Combined earpiece mesh and proximity sensor cable.",
   },
   {
@@ -99,7 +110,11 @@ export const MOCK_PRODUCTS = [
     quality: "High",
     price: 1200,
     featured: false,
-    images: pick(5),
+    images: productPlaceholderImages({
+      _id: "mock-6",
+      name: "Back Glass Panel — iPhone 13",
+      category: "Body",
+    }),
     description: "Matte frosted finish with camera lens rings pre-installed.",
   },
   {
@@ -111,7 +126,11 @@ export const MOCK_PRODUCTS = [
     quality: "High",
     price: 5200,
     featured: true,
-    images: pick(0),
+    images: productPlaceholderImages({
+      _id: "mock-7",
+      name: "Super AMOLED — Galaxy A55",
+      category: "Display",
+    }),
     description: "120Hz capable panel with digitizer bonded.",
   },
   {
@@ -123,7 +142,11 @@ export const MOCK_PRODUCTS = [
     quality: "Original",
     price: 1299,
     featured: false,
-    images: pick(1),
+    images: productPlaceholderImages({
+      _id: "mock-8",
+      name: "Battery — Redmi Note 13",
+      category: "Battery",
+    }),
     description: "5000mAh rated capacity. BIS compatible batch.",
   },
   {
@@ -135,7 +158,11 @@ export const MOCK_PRODUCTS = [
     quality: "Low",
     price: 450,
     featured: false,
-    images: pick(2),
+    images: productPlaceholderImages({
+      _id: "mock-9",
+      name: "Main Flex + Power — POCO X6",
+      category: "Charging",
+    }),
     description: "Power volume combo flex with charge sub-board link.",
   },
   {
@@ -147,7 +174,11 @@ export const MOCK_PRODUCTS = [
     quality: "Original",
     price: 2800,
     featured: false,
-    images: pick(3),
+    images: productPlaceholderImages({
+      _id: "mock-10",
+      name: "Front Camera — iPhone 12",
+      category: "Camera",
+    }),
     description: "TrueDepth compatible front module with ambient sensor.",
   },
   {
@@ -159,7 +190,11 @@ export const MOCK_PRODUCTS = [
     quality: "High",
     price: 380,
     featured: false,
-    images: pick(4),
+    images: productPlaceholderImages({
+      _id: "mock-11",
+      name: "Loudspeaker — Galaxy M34",
+      category: "Speaker",
+    }),
     description: "Bottom firing buzzer with gasket seal.",
   },
   {
@@ -171,7 +206,11 @@ export const MOCK_PRODUCTS = [
     quality: "Low",
     price: 890,
     featured: false,
-    images: pick(5),
+    images: productPlaceholderImages({
+      _id: "mock-12",
+      name: "Mid-Frame Chassis — Y200",
+      category: "Body",
+    }),
     description: "Side keys and SIM tray cutouts included.",
   },
 ];

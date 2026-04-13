@@ -1,7 +1,8 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/CartProvider";
 import Navbar from "@/components/Navbar";
+import MainShell from "@/components/MainShell";
 import Footer from "@/components/Footer";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -14,6 +15,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata = {
@@ -36,11 +43,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full scroll-smooth`}>
-      <body className="min-h-full flex flex-col bg-white text-black antialiased">
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full`}
+    >
+      <body className="app-site-shell min-h-full flex flex-col antialiased">
         <CartProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <MainShell>{children}</MainShell>
           <Footer />
           <WhatsAppFloat />
           <ScrollToTop />

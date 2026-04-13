@@ -47,9 +47,15 @@ const reviews = [
 
 export default function Testimonials() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-zinc-100 via-white to-zinc-100 py-16 sm:py-24 lg:py-28">
-      <div className="pointer-events-none absolute -left-32 top-1/4 h-[420px] w-[420px] rounded-full bg-[#FFA500]/12 blur-[120px]" />
-      <div className="pointer-events-none absolute -right-32 bottom-0 h-[380px] w-[380px] rounded-full bg-black/[0.04] blur-[100px]" />
+    <section className="relative overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900 to-black py-16 sm:py-20 lg:py-28">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(255,102,0,0.12),transparent)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <motion.div
@@ -59,11 +65,11 @@ export default function Testimonials() {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#FFA500]">Trust</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-black sm:text-4xl lg:text-5xl">
+          <p className="text-xs font-bold uppercase tracking-[0.4em] text-brand">Trust</p>
+          <h2 className="font-display mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Trusted by 1000+ technicians & shops
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-black/60 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/65 sm:text-base">
             Real feedback from repair floors — swipe through stories from teams who use Chacha Mobile.
           </p>
         </motion.div>
@@ -79,21 +85,26 @@ export default function Testimonials() {
             loop
             autoplay={{ delay: 5200, disableOnInteraction: false }}
             pagination={{ clickable: true, dynamicBullets: true }}
-            className="testimonial-swiper w-full !pb-12"
+            className="testimonial-swiper testimonial-swiper--dark w-full !pb-12"
           >
             {reviews.map((r) => (
               <SwiperSlide key={r.name} className="!h-auto">
-                <figure className="mx-auto flex h-full max-w-lg flex-col rounded-2xl border border-black/[0.08] bg-white p-7 shadow-[0_8px_30px_rgba(0,0,0,0.06)] sm:p-9">
-                  <div className="flex gap-0.5 text-base text-[#FFA500]" aria-hidden>
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <span key={j}>★</span>
-                    ))}
+                <figure className="card-gradient-border surface-3d-hover mx-auto flex h-full max-w-lg flex-col rounded-2xl bg-white p-7 shadow-[0_16px_50px_rgba(0,0,0,0.08)] sm:p-9">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-display text-4xl font-bold leading-none text-brand/30" aria-hidden>
+                      “
+                    </span>
+                    <div className="flex gap-0.5 pt-1 text-base text-brand" aria-hidden>
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <span key={j}>★</span>
+                      ))}
+                    </div>
                   </div>
-                  <blockquote className="mt-5 flex-1 text-base leading-relaxed text-black/80 sm:text-lg">
-                    “{r.quote}”
+                  <blockquote className="mt-4 flex-1 text-base leading-relaxed text-black/80 sm:text-lg">
+                    {r.quote}
                   </blockquote>
                   <figcaption className="mt-8 border-t border-black/[0.06] pt-5">
-                    <p className="text-lg font-bold text-black">{r.name}</p>
+                    <p className="font-display text-lg font-bold text-black">{r.name}</p>
                     <p className="mt-1 text-sm text-black/50">{r.role}</p>
                   </figcaption>
                 </figure>
@@ -102,21 +113,6 @@ export default function Testimonials() {
           </Swiper>
         </div>
       </div>
-
-      <style jsx global>{`
-        .testimonial-swiper .swiper-pagination-bullet {
-          background: rgba(0, 0, 0, 0.2);
-          opacity: 1;
-        }
-        .testimonial-swiper .swiper-pagination-bullet-active {
-          background: #ffa500;
-          width: 26px;
-          border-radius: 999px;
-        }
-        .testimonial-swiper .swiper-pagination {
-          bottom: 0 !important;
-        }
-      `}</style>
     </section>
   );
 }

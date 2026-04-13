@@ -3,15 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { useState, startTransition, useEffect, useRef, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useState, startTransition, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { useCart } from "./CartProvider";
 import { useShopCategories } from "@/hooks/useShopCategories";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   const { totalQty } = useCart();
   const navCategories = useShopCategories();
@@ -21,9 +20,31 @@ export default function Navbar() {
   const [q, setQ] = useState("");
   const closeTimer = useRef(null);
 
-  useMotionValueEvent(scrollY, "change", (y) => {
-    setScrolled(y > 10);
-  });
+  const SCROLL_THRESHOLD = 12;
+
+  /** Must use ?? not || — scrollY === 0 is valid at page top; || would skip 0 and use a non-zero scrollTop by mistake. */
+  function readScrollY() {
+    if (typeof window === "undefined") return 0;
+    const w = window.scrollY;
+    if (Number.isFinite(w)) return w;
+    const p = window.pageYOffset;
+    if (Number.isFinite(p)) return p;
+    const doc = document.documentElement?.scrollTop;
+    if (Number.isFinite(doc)) return doc;
+    const body = document.body?.scrollTop;
+    return Number.isFinite(body) ? body : 0;
+  }
+
+  useLayoutEffect(() => {
+    setScrolled(readScrollY() > SCROLL_THRESHOLD);
+  }, [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(readScrollY() > SCROLL_THRESHOLD);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [pathname]);
 
   useEffect(() => {
     startTransition(() => setMounted(true));
@@ -48,20 +69,46 @@ export default function Navbar() {
     setQ("");
   };
 
+  const navIdle = scrolled
+    ? "text-black/65 hover:bg-black/[0.04]"
+    : "text-white/88 hover:bg-white/12";
+  const brandTitle = scrolled ? "text-black" : "text-white";
+  const brandSub = scrolled ? "text-black/38" : "text-white/45";
+  const iconShell = scrolled
+    ? "border-black/[0.08] bg-white/80 text-black/70 shadow-sm hover:border-brand/40 hover:text-black"
+    : "border-white/25 bg-white/10 text-white shadow-none backdrop-blur-md hover:border-brand/45 hover:bg-white/15";
+
   return (
-    <motion.header
-      initial={{ y: -12, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`sticky top-0 z-[100] border-b transition-[background,box-shadow,backdrop-filter] duration-500 ${
+    <header
+      className={`fixed left-0 right-0 top-0 z-[100] w-full border-b transition-[background-color,box-shadow,backdrop-filter,border-color] duration-500 ${
         scrolled
-          ? "border-black/[0.06] bg-white/72 shadow-[0_12px_40px_rgba(0,0,0,0.07)] backdrop-blur-2xl"
-          : "border-transparent bg-white/88 backdrop-blur-xl"
+          ? "border-black/[0.06] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl"
+          : "border-transparent shadow-none backdrop-blur-none bg-transparent"
       }`}
+      style={
+        scrolled
+          ? undefined
+          : {
+              backgroundColor: "transparent",
+              boxShadow: "none",
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+            }
+      }
     >
+      <div
+        className={`pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand/70 to-transparent transition-opacity duration-500 ${
+          scrolled ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden
+      />
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
         <Link href="/" className="group flex shrink-0 items-center gap-3">
-          <span className="relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04] transition duration-300 group-hover:shadow-[0_8px_32px_rgba(255,165,0,0.28)]">
+          <span
+            className={`icon-3d-hover relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition duration-300 group-hover:shadow-[0_8px_32px_rgba(255,165,0,0.28)] ${
+              scrolled ? "border-black/[0.06] ring-1 ring-black/[0.04]" : "border-white/25 ring-1 ring-white/15"
+            }`}
+          >
             <Image
               src="/logo.png"
               alt="Chacha Mobile"
@@ -72,10 +119,14 @@ export default function Navbar() {
             />
           </span>
           <div className="hidden leading-tight sm:block">
-            <span className="block text-[0.95rem] font-semibold tracking-tight text-black">
+            <span
+              className={`font-display block text-[0.95rem] font-semibold tracking-tight transition-colors duration-500 ${brandTitle}`}
+            >
               Chacha Mobile
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-black/38">
+            <span
+              className={`text-[10px] font-medium uppercase tracking-[0.2em] transition-colors duration-500 ${brandSub}`}
+            >
               Premium parts
             </span>
           </div>
@@ -84,16 +135,16 @@ export default function Navbar() {
         <nav className="mx-auto hidden h-full flex-1 items-center justify-center gap-1 lg:flex">
           <Link
             href="/"
-            className={`rounded-full px-5 py-2.5 text-sm font-medium transition ${
-              pathname === "/" ? "bg-black text-[#FFA500]" : "text-black/65 hover:bg-black/[0.04]"
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
+              pathname === "/" ? "bg-black text-brand" : navIdle
             }`}
           >
             Home
           </Link>
           <Link
             href="/shop"
-            className={`rounded-full px-5 py-2.5 text-sm font-medium transition ${
-              pathname === "/shop" ? "bg-black text-[#FFA500]" : "text-black/65 hover:bg-black/[0.04]"
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
+              pathname === "/shop" ? "bg-black text-brand" : navIdle
             }`}
           >
             Shop
@@ -106,8 +157,8 @@ export default function Navbar() {
           >
             <button
               type="button"
-              className={`flex items-center gap-1 rounded-full px-5 py-2.5 text-sm font-medium transition ${
-                mega ? "bg-black text-[#FFA500]" : "text-black/65 hover:bg-black/[0.04]"
+              className={`nav-pill-3d flex items-center gap-1 rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
+                mega ? "bg-black text-brand" : navIdle
               }`}
               aria-expanded={mega}
               aria-haspopup="true"
@@ -129,15 +180,15 @@ export default function Navbar() {
                   onMouseEnter={openMega}
                   onMouseLeave={scheduleCloseMega}
                 >
-                  <div className="rounded-3xl border border-black/[0.08] bg-white/90 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.14)] backdrop-blur-2xl">
+                  <div className="rounded-3xl border border-white/10 bg-black/95 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/5 backdrop-blur-2xl">
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                       {navCategories.map((cat) => (
                         <Link
                           key={cat.slug}
                           href={`/shop?category=${encodeURIComponent(cat.slug)}`}
-                          className="group relative overflow-hidden rounded-2xl border border-black/[0.06] bg-white/80 p-3 transition hover:border-[#FFA500]/45 hover:shadow-[0_12px_36px_rgba(255,165,0,0.15)]"
+                          className="surface-3d-hover group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/80 p-3 transition hover:border-brand/50 hover:bg-zinc-900 hover:shadow-[0_12px_36px_rgba(255,102,0,0.2)]"
                         >
-                          <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-zinc-100">
+                          <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-zinc-800">
                             <Image
                               src={cat.image}
                               alt=""
@@ -145,13 +196,13 @@ export default function Navbar() {
                               className="object-cover transition duration-500 group-hover:scale-110"
                               sizes="140px"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-70" />
                             <span className="absolute left-2 top-2 text-lg text-white drop-shadow">
                               {cat.icon}
                             </span>
                           </div>
-                          <p className="text-xs font-semibold leading-snug text-black">{cat.label}</p>
-                          <p className="mt-0.5 text-[10px] text-black/45">{cat.blurb}</p>
+                          <p className="text-xs font-semibold leading-snug text-white">{cat.label}</p>
+                          <p className="mt-0.5 text-[10px] text-white/50">{cat.blurb}</p>
                         </Link>
                       ))}
                     </div>
@@ -163,10 +214,8 @@ export default function Navbar() {
 
           <Link
             href="/contact"
-            className={`rounded-full px-5 py-2.5 text-sm font-medium transition ${
-              pathname === "/contact"
-                ? "bg-black text-[#FFA500]"
-                : "text-black/65 hover:bg-black/[0.04]"
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
+              pathname === "/contact" ? "bg-black text-brand" : navIdle
             }`}
           >
             Contact
@@ -194,7 +243,7 @@ export default function Navbar() {
                 />
                 <button
                   type="submit"
-                  className="shrink-0 px-3 text-xs font-semibold text-[#cc7700]"
+                  className="shrink-0 px-3 text-xs font-semibold text-brand-dim"
                 >
                   Go
                 </button>
@@ -215,7 +264,7 @@ export default function Navbar() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setSearchOpen(true)}
-                className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-black/[0.08] bg-white/80 text-black/70 shadow-sm transition hover:border-[#FFA500]/40 hover:text-black sm:flex"
+                className={`icon-3d-hover hidden h-11 w-11 items-center justify-center rounded-2xl border transition-colors duration-500 sm:flex ${iconShell}`}
                 aria-label="Search"
               >
                 <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,7 +281,7 @@ export default function Navbar() {
 
           <Link
             href="/cart"
-            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-black/[0.08] bg-white/80 text-black shadow-sm transition hover:border-[#FFA500]/40 sm:w-auto sm:gap-2 sm:px-4"
+            className={`relative flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors duration-500 sm:w-auto sm:gap-2 sm:px-4 ${iconShell}`}
           >
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -244,7 +293,7 @@ export default function Navbar() {
             </svg>
             <span className="hidden text-sm font-semibold sm:inline">Cart</span>
             {mounted && totalQty > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FFA500] px-1 text-[10px] font-bold text-black shadow">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-black shadow">
                 {totalQty}
               </span>
             )}
@@ -254,7 +303,7 @@ export default function Navbar() {
             href="https://wa.me/918126162661"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md transition hover:scale-[1.03] hover:shadow-lg"
+            className="btn-3d-pop flex h-11 w-11 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md transition hover:shadow-lg"
             aria-label="WhatsApp"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -263,48 +312,50 @@ export default function Navbar() {
           </a>
 
           <details className="relative lg:hidden">
-            <summary className="flex h-11 list-none items-center justify-center rounded-2xl border border-black/[0.08] bg-white/80 px-3 shadow-sm [&::-webkit-details-marker]:hidden">
+            <summary
+              className={`flex h-11 list-none items-center justify-center rounded-2xl border px-3 transition-colors duration-500 [&::-webkit-details-marker]:hidden ${iconShell}`}
+            >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </summary>
-            <div className="absolute right-0 z-[130] mt-2 w-64 overflow-hidden rounded-2xl border border-black/10 bg-white/95 py-2 shadow-2xl backdrop-blur-xl">
-              <Link href="/" className="block px-4 py-2.5 text-sm font-medium text-black/80">
+            <div className="absolute right-0 z-[130] mt-2 w-64 overflow-hidden rounded-2xl border border-white/10 bg-black/95 py-2 shadow-2xl ring-1 ring-white/5 backdrop-blur-xl">
+              <Link href="/" className="block px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
                 Home
               </Link>
-              <Link href="/shop" className="block px-4 py-2.5 text-sm font-medium text-black/80">
+              <Link href="/shop" className="block px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
                 Shop
               </Link>
-              <div className="border-t border-black/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-black/40">
+              <div className="border-t border-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/45">
                 Categories
               </div>
               {navCategories.map((c) => (
                 <Link
                   key={c.slug}
                   href={`/shop?category=${encodeURIComponent(c.slug)}`}
-                  className="block px-4 py-2 text-sm text-black/75 hover:bg-black/[0.03]"
+                  className="block px-4 py-2 text-sm text-white/75 hover:bg-white/10"
                 >
                   {c.label}
                 </Link>
               ))}
-              <Link href="/contact" className="block border-t border-black/5 px-4 py-2.5 text-sm font-medium text-black/80">
+              <Link href="/contact" className="block border-t border-white/10 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
                 Contact
               </Link>
               <form
                 onSubmit={onSearch}
-                className="border-t border-black/5 p-3"
+                className="border-t border-white/10 p-3"
               >
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search shop…"
-                  className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm outline-none"
+                  className="w-full rounded-xl border border-white/15 bg-zinc-900/80 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-brand/50"
                 />
               </form>
             </div>
           </details>
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 }

@@ -48,7 +48,7 @@ const cards = [
 export default function AdminEntryPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-zinc-100 via-white to-zinc-50 px-4 py-16 sm:px-6 lg:py-24">
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[880px] -translate-x-1/2 rounded-full bg-[#FFA500]/12 blur-[120px]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[480px] w-[880px] -translate-x-1/2 rounded-full bg-brand/12 blur-[120px]" />
 
       <div className="relative mx-auto max-w-5xl">
         <motion.div
@@ -71,7 +71,7 @@ export default function AdminEntryPage() {
           </p>
           <Link
             href="/admin/login"
-            className="mt-6 inline-block text-sm font-semibold text-[#cc7700] hover:underline"
+            className="mt-6 inline-block text-sm font-semibold text-brand-dim hover:underline"
           >
             Staff login → catalogue admin
           </Link>
@@ -87,8 +87,8 @@ export default function AdminEntryPage() {
               whileHover={{ y: -6 }}
               className="group relative flex flex-col overflow-hidden rounded-[2rem] border border-black/[0.06] bg-white/90 p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur-xl"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FFA500]/10 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-black text-[#FFA500] shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-black text-brand shadow-lg">
                 {card.icon}
               </div>
               <h2 className="relative mt-8 text-2xl font-semibold tracking-tight text-black">
@@ -99,7 +99,7 @@ export default function AdminEntryPage() {
               </p>
               <Link
                 href={card.href}
-                className="relative mt-10 inline-flex items-center justify-center rounded-2xl bg-black px-8 py-4 text-sm font-semibold text-[#FFA500] transition group-hover:bg-black/90"
+                className="relative mt-10 inline-flex items-center justify-center rounded-2xl bg-black px-8 py-4 text-sm font-semibold text-brand transition group-hover:bg-black/90"
               >
                 {card.cta}
               </Link>

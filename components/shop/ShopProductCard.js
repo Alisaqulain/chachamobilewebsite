@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { resolveProductCardImage } from "@/lib/partImages";
+import TiltCard from "@/components/TiltCard";
 
 function badgeClass(q) {
   if (q === "Original") return "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20";
@@ -19,7 +21,7 @@ function categoryLabel(product) {
 }
 
 export default function ShopProductCard({ product, index = 0, onOpenDetail }) {
-  const img = product.images?.[0];
+  const img = resolveProductCardImage(product);
   const cat = categoryLabel(product);
 
   return (
@@ -30,25 +32,22 @@ export default function ShopProductCard({ product, index = 0, onOpenDetail }) {
       transition={{ duration: 0.45, delay: index * 0.05 }}
       className="h-full"
     >
-      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[#FFA500]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
+      <TiltCard className="h-full">
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition duration-300 hover:border-brand/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
         <button
           type="button"
           onClick={() => onOpenDetail?.(product)}
-          className="relative block w-full cursor-pointer text-left aspect-[4/5] overflow-hidden bg-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-[#FFA500] focus-visible:ring-offset-2"
+          className="relative block w-full cursor-pointer text-left aspect-[4/5] overflow-hidden bg-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
-          {img ? (
-            <div className="h-full w-full overflow-hidden">
-              <Image
-                src={img}
-                alt={product.name}
-                fill
-                className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
-                sizes="(max-width:768px) 50vw, 33vw"
-              />
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-black/35">No image</div>
-          )}
+          <div className="h-full w-full overflow-hidden">
+            <Image
+              src={img}
+              alt={product.name}
+              fill
+              className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
+              sizes="(max-width:768px) 50vw, 33vw"
+            />
+          </div>
           <span
             className={`pointer-events-none absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 backdrop-blur-md ${badgeClass(product.quality)}`}
           >
@@ -63,12 +62,12 @@ export default function ShopProductCard({ product, index = 0, onOpenDetail }) {
           <button
             type="button"
             onClick={() => onOpenDetail?.(product)}
-            className="w-full cursor-pointer text-left rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#FFA500] focus-visible:ring-offset-2"
+            className="w-full cursor-pointer text-left rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
             {cat ? (
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#FFA500]">{cat}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{cat}</p>
             ) : null}
-            <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug tracking-tight text-black transition group-hover:text-[#cc7700]">
+            <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug tracking-tight text-black transition group-hover:text-brand-dim">
               {product.name}
             </h3>
             <p className="mt-1 text-xs text-black/50">
@@ -83,13 +82,13 @@ export default function ShopProductCard({ product, index = 0, onOpenDetail }) {
             <button
               type="button"
               onClick={() => onOpenDetail?.(product)}
-              className="rounded-xl bg-black px-4 py-2.5 text-xs font-bold text-[#FFA500] transition hover:bg-zinc-900"
+              className="rounded-xl bg-black px-4 py-2.5 text-xs font-bold text-brand transition hover:bg-zinc-900"
             >
               View &amp; buy
             </button>
             <Link
               href={`/product/${product._id}`}
-              className="text-xs font-semibold text-[#cc7700] hover:underline"
+              className="text-xs font-semibold text-brand-dim hover:underline"
               onClick={(e) => e.stopPropagation()}
             >
               Full page
@@ -97,6 +96,7 @@ export default function ShopProductCard({ product, index = 0, onOpenDetail }) {
           </div>
         </div>
       </div>
+      </TiltCard>
     </motion.article>
   );
 }

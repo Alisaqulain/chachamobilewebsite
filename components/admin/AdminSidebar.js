@@ -10,7 +10,7 @@ export default function AdminSidebar({ mobileOpen, onNavigate }) {
   const linkClass = (href) => {
     const active = pathname === href || pathname.startsWith(`${href}/`);
     return `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
-      active ? "bg-[#FFA500] text-black" : "text-white/70 hover:bg-white/10 hover:text-white"
+      active ? "bg-brand text-black" : "text-white/70 hover:bg-white/10 hover:text-white"
     }`;
   };
 
@@ -27,7 +27,7 @@ export default function AdminSidebar({ mobileOpen, onNavigate }) {
           </span>
           <div>
             <p className="text-sm font-bold tracking-tight">Chacha Mobile</p>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#FFA500]">Admin</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand">Admin</p>
           </div>
         </div>
 

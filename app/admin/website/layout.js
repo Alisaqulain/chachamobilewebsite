@@ -35,7 +35,7 @@ export default function WebsiteAdminLayout({ children }) {
               <Link key={item.href} href={item.href} className="block">
                 <motion.span
                   className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
-                    active ? "bg-black text-[#FFA500]" : "text-black/65 hover:bg-black/[0.04]"
+                    active ? "bg-black text-brand" : "text-black/65 hover:bg-black/[0.04]"
                   }`}
                   whileHover={{ x: 2 }}
                 >
@@ -55,14 +55,14 @@ export default function WebsiteAdminLayout({ children }) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/[0.06] bg-white/75 px-4 py-4 backdrop-blur-xl lg:px-8">
           <div className="flex items-center gap-3 lg:hidden">
-            <Link href="/admin" className="text-sm font-semibold text-[#cc7700]">
+            <Link href="/admin" className="text-sm font-semibold text-brand-dim">
               ← Hub
             </Link>
           </div>
           <p className="hidden text-sm text-black/45 lg:block">Website workspace · mock UI</p>
           <Link
             href="/admin/dashboard"
-            className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black shadow-sm transition hover:border-[#FFA500]/40"
+            className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-black shadow-sm transition hover:border-brand/40"
           >
             Live admin
           </Link>

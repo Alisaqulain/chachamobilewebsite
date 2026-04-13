@@ -6,8 +6,10 @@ import { getMockProduct } from "@/data/mockData";
 import { useCart } from "@/components/CartProvider";
 import { buildWhatsAppUrl } from "@/utils/whatsapp";
 import { motion } from "framer-motion";
+import { productPlaceholderImages } from "@/lib/partImages";
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
+import TiltCard from "@/components/TiltCard";
 
 function badgeClass(q) {
   if (q === "Original") return "bg-emerald-500/15 text-emerald-800 ring-emerald-500/20";
@@ -57,7 +59,7 @@ export default function ProductDetailClient({ id }) {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-24 text-center text-sm text-black/50 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-24 text-center text-sm text-white/55 sm:px-6">
         Loading product…
       </div>
     );
@@ -68,16 +70,19 @@ export default function ProductDetailClient({ id }) {
     return null;
   }
 
-  const imgs = product.images?.length ? product.images : [];
+  const imgs = productPlaceholderImages(product);
   const main = imgs[activeImg] || imgs[0];
   const wa = buildWhatsAppUrl(
     `Hello Chacha Mobile, I want to order: ${product.name} (${product.brand} ${product.model}) — ₹${product.price}`
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-16">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-8 text-sm">
-        <Link href="/shop" className="font-medium text-[#cc7700] hover:underline">
+    <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-16">
+      <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-brand/12 blur-[100px]" />
+      <div className="pointer-events-none absolute -right-20 bottom-20 h-64 w-64 rounded-full bg-accent/10 blur-[90px]" />
+
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative mb-8 text-sm">
+        <Link href="/shop" className="font-medium text-brand-dim hover:underline">
           ← Back to shop
         </Link>
       </motion.div>
@@ -89,6 +94,7 @@ export default function ProductDetailClient({ id }) {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="space-y-4"
         >
+          <TiltCard className="w-full">
           <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-black/[0.06] bg-zinc-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
             {main ? (
               <motion.div
@@ -109,6 +115,7 @@ export default function ProductDetailClient({ id }) {
               {product.quality}
             </span>
           </div>
+          </TiltCard>
           {imgs.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-1">
               {imgs.map((src, i) => (
@@ -116,8 +123,8 @@ export default function ProductDetailClient({ id }) {
                   key={src}
                   type="button"
                   onClick={() => setActiveImg(i)}
-                  className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition ${
-                    i === activeImg ? "border-[#FFA500] shadow-md" : "border-transparent opacity-70 hover:opacity-100"
+                  className={`surface-3d-hover relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition ${
+                    i === activeImg ? "border-brand shadow-md" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
                   <Image src={src} alt="" fill className="object-cover" sizes="80px" />
@@ -132,16 +139,16 @@ export default function ProductDetailClient({ id }) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#FFA500]">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-brand">
             {product.category || product.categoryId?.name || ""}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black sm:text-4xl lg:text-[2.5rem] lg:leading-tight">
+          <h1 className="font-display mt-2 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl lg:text-[2.5rem] lg:leading-tight">
             {product.name}
           </h1>
           <p className="mt-3 text-sm text-black/55">
             {product.brand} · <span className="font-medium text-black">{product.model}</span>
           </p>
-          <p className="mt-8 text-4xl font-semibold tracking-tight text-black">
+          <p className="font-display mt-8 text-4xl font-bold tracking-tight text-zinc-900">
             ₹{Number(product.price).toLocaleString("en-IN")}
           </p>
 
@@ -154,7 +161,7 @@ export default function ProductDetailClient({ id }) {
                 setAdded(true);
                 setTimeout(() => setAdded(false), 2000);
               }}
-              className="flex-1 rounded-2xl bg-black py-4 text-sm font-semibold text-[#FFA500] shadow-lg transition hover:bg-black/90"
+              className="btn-3d-pop flex-1 rounded-2xl bg-black py-4 text-sm font-semibold text-brand shadow-lg transition hover:bg-black/90"
             >
               {added ? "Added to cart ✓" : "Add to cart"}
             </motion.button>
@@ -164,13 +171,13 @@ export default function ProductDetailClient({ id }) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex-1 rounded-2xl border-2 border-black/10 bg-white py-4 text-center text-sm font-semibold text-black transition hover:border-[#FFA500]/50"
+              className="flex-1 rounded-2xl border-2 border-black/10 bg-white py-4 text-center text-sm font-semibold text-black transition hover:border-brand/50"
             >
               Order on WhatsApp
             </motion.a>
           </div>
 
-          <div className="mt-12 rounded-3xl border border-black/[0.06] bg-zinc-50/80 p-6 backdrop-blur-sm">
+          <div className="surface-3d-hover mt-12 rounded-3xl border border-black/[0.06] bg-zinc-50/80 p-6 backdrop-blur-sm">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-black/40">
               Description
             </h2>

@@ -5,7 +5,7 @@ export default function NewProductPage() {
   return (
     <div>
       <div className="mb-6 text-sm">
-        <Link href="/admin/products" className="font-semibold text-[#cc7700] hover:underline">
+        <Link href="/admin/products" className="font-semibold text-brand-dim hover:underline">
           ← Products
         </Link>
       </div>

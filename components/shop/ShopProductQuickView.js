@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "@/components/CartProvider";
 import { buildProductOrderMessage, buildWhatsAppUrl } from "@/utils/whatsapp";
+import { productPlaceholderImages } from "@/lib/partImages";
 
 function isMongoId(id) {
   return typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
@@ -75,7 +76,7 @@ export default function ShopProductQuickView({ product, onClose }) {
       ? { ...product, ...detail }
       : product;
 
-  const imgs = Array.isArray(p.images) && p.images.length ? p.images : [];
+  const imgs = productPlaceholderImages(p);
   const main = imgs[activeImg] || imgs[0];
   const unit = Number(p.price) || 0;
   const lineTotal = unit * qty;
@@ -109,7 +110,7 @@ export default function ShopProductQuickView({ product, onClose }) {
           className="relative z-[201] flex max-h-[min(92dvh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-black/10 bg-white shadow-2xl sm:max-h-[min(88vh,820px)] sm:rounded-3xl"
         >
           <div className="flex shrink-0 items-center justify-between border-b border-black/10 px-4 py-3 sm:px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">Product details</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">Product details</p>
             <button
               type="button"
               onClick={onClose}
@@ -143,7 +144,7 @@ export default function ShopProductQuickView({ product, onClose }) {
                         type="button"
                         onClick={() => setActiveImg(i)}
                         className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                          i === activeImg ? "border-[#FFA500]" : "border-transparent opacity-75 hover:opacity-100"
+                          i === activeImg ? "border-brand" : "border-transparent opacity-75 hover:opacity-100"
                         }`}
                       >
                         <Image src={src} alt="" fill className="object-cover" sizes="64px" />
@@ -155,7 +156,7 @@ export default function ShopProductQuickView({ product, onClose }) {
 
               <div className="flex min-w-0 flex-col">
                 {cat ? (
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#FFA500]">{cat}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{cat}</p>
                 ) : null}
                 <h2 id="qv-title" className="mt-1 text-xl font-bold leading-snug tracking-tight text-black sm:text-2xl">
                   {p.name}
@@ -214,7 +215,7 @@ export default function ShopProductQuickView({ product, onClose }) {
                       setCartFlash(true);
                       setTimeout(() => setCartFlash(false), 1800);
                     }}
-                    className="min-h-[48px] min-w-[160px] flex-1 rounded-2xl bg-black px-6 text-sm font-bold text-[#FFA500] transition hover:bg-zinc-900 sm:flex-none"
+                    className="min-h-[48px] min-w-[160px] flex-1 rounded-2xl bg-black px-6 text-sm font-bold text-brand transition hover:bg-zinc-900 sm:flex-none"
                   >
                     {cartFlash ? "Added to cart ✓" : "Add to cart"}
                   </button>
@@ -246,7 +247,7 @@ export default function ShopProductQuickView({ product, onClose }) {
                   <Link
                     href={`/product/${p._id}`}
                     onClick={onClose}
-                    className="text-sm font-semibold text-[#cc7700] hover:underline"
+                    className="text-sm font-semibold text-brand-dim hover:underline"
                   >
                     Open full product page →
                   </Link>

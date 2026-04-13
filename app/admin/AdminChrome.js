@@ -112,7 +112,7 @@ export default function AdminChrome({ children }) {
                 <Image src="/logo.png" alt="" fill className="object-contain p-0.5" sizes="32px" />
               </span>
               <span className="text-sm font-bold text-black">
-                Catalogue <span className="text-[#FFA500]">Panel</span>
+                Catalogue <span className="text-brand">Panel</span>
               </span>
             </Link>
           </div>
@@ -121,13 +121,13 @@ export default function AdminChrome({ children }) {
             <Link href="/admin" className="font-semibold text-black/50 hover:text-black">
               Hub
             </Link>
-            <Link href="/" className="font-semibold text-[#cc7700] hover:underline">
+            <Link href="/" className="font-semibold text-brand-dim hover:underline">
               View site
             </Link>
             <button
               type="button"
               onClick={logout}
-              className="rounded-full bg-black px-3 py-1.5 text-xs font-bold text-[#FFA500]"
+              className="rounded-full bg-black px-3 py-1.5 text-xs font-bold text-brand"
             >
               Logout
             </button>

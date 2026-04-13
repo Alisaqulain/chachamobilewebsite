@@ -40,8 +40,8 @@ export default async function CheckPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center px-4 py-16">
-      <div className="rounded-2xl border border-black/10 bg-white p-8 shadow-lg">
+    <div className="page-3d-enter mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center px-4 py-16">
+      <div className="surface-3d-hover rounded-2xl border border-black/10 bg-white p-8 shadow-lg">
         <h1 className="text-xl font-extrabold text-black">Database check</h1>
         <p className="mt-1 text-sm text-black/55">MongoDB Atlas / Mongoose connection test</p>
 
@@ -79,7 +79,7 @@ export default async function CheckPage() {
 
         <Link
           href="/"
-          className="mt-6 inline-flex text-sm font-semibold text-[#cc7700] hover:underline"
+          className="mt-6 inline-flex text-sm font-semibold text-brand-dim hover:underline"
         >
           ← Back to home
         </Link>

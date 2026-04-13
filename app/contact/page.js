@@ -9,7 +9,8 @@ const MAP_EMBED =
 export default function ContactPage() {
   return (
     <div className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,165,0,0.12),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,102,0,0.14),transparent_55%)]" />
+      <div className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px]" />
       <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -17,13 +18,23 @@ export default function ContactPage() {
           transition={{ duration: 0.5 }}
           className="max-w-2xl"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFA500]">Contact</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight text-black sm:text-5xl">
+          <p className="text-xs font-bold uppercase tracking-[0.35em] text-brand">Contact</p>
+          <h1 className="font-display mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Let’s talk parts
           </h1>
-          <p className="mt-4 text-base leading-relaxed text-black/55">
-            Call, email, or WhatsApp — we respond fast for availability, pricing, and bulk orders.
+          <p className="mt-5 text-base leading-relaxed text-white/70 sm:text-lg">
+            Call, email, or WhatsApp — fast answers on availability, compatible SKUs, and bulk pricing.
           </p>
+          <div className="mt-8 flex flex-wrap gap-2">
+            {["Avg. reply under 10 min", "B2B bulk quotes", "Same-day dispatch zones"].map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-zinc-200 bg-white/80 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-600 shadow-sm backdrop-blur-sm"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
         </motion.div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-2 lg:gap-12">
@@ -52,7 +63,7 @@ export default function ContactPage() {
                 href={row.href}
                 target={row.external ? "_blank" : undefined}
                 rel={row.external ? "noopener noreferrer" : undefined}
-                className="block rounded-3xl border border-black/[0.06] bg-white/80 p-6 shadow-[0_8px_40px_rgba(0,0,0,0.05)] backdrop-blur-xl transition hover:border-[#FFA500]/35 hover:shadow-lg"
+                className="card-gradient-border surface-3d-hover block rounded-3xl bg-white/90 p-6 shadow-[0_12px_48px_rgba(0,0,0,0.07)] backdrop-blur-xl transition hover:shadow-xl"
               >
                 <p className="text-xs font-semibold uppercase tracking-wider text-black/40">
                   {row.label}
@@ -60,7 +71,7 @@ export default function ContactPage() {
                 <p className="mt-2 text-lg font-semibold text-black">{row.val}</p>
               </a>
             ))}
-            <div className="rounded-3xl border border-black/[0.06] bg-white/80 p-6 backdrop-blur-xl">
+            <div className="surface-3d-hover rounded-3xl border border-black/[0.06] bg-white/80 p-6 backdrop-blur-xl">
               <p className="text-xs font-semibold uppercase tracking-wider text-black/40">
                 Address
               </p>
@@ -71,14 +82,14 @@ export default function ContactPage() {
                 href="https://maps.app.goo.gl/9GFzaknT5fP1aWAh9"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex rounded-2xl bg-black px-5 py-2.5 text-xs font-semibold text-[#FFA500]"
+                className="mt-4 inline-flex rounded-2xl bg-black px-5 py-2.5 text-xs font-semibold text-brand"
               >
                 Open in Google Maps
               </a>
             </div>
             <Link
               href="/shop"
-              className="inline-flex rounded-2xl border border-black/10 px-5 py-2.5 text-sm font-semibold text-black/70 transition hover:border-[#FFA500]/40"
+              className="inline-flex rounded-2xl border border-white/25 px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:border-brand/50"
             >
               ← Back to shop
             </Link>
@@ -114,7 +125,7 @@ export default function ContactPage() {
             href="https://wa.me/918126162661"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-10 py-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#1ebe5d]"
+            className="btn-3d-pop inline-flex items-center gap-2 rounded-full bg-[#25D366] px-10 py-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#1ebe5d]"
           >
             Message on WhatsApp
           </a>

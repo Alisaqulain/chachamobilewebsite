@@ -3,8 +3,9 @@
 export const HERO_SLIDES = [
   {
     id: "main",
-    headline: "Best Mobile Parts Store",
-    subline: "Original | High Copy | Affordable Prices",
+    headline: "Premium parts for every bench",
+    subline:
+      "Original, high copy, and economy grades — labelled clearly on paperwork, picked for technicians who live on the repair floor.",
     floatImage:
       "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=85",
     bgImage:
@@ -25,8 +26,9 @@ export const HERO_SLIDES = [
   },
   {
     id: "repair",
-    headline: "Everything for fast repair",
-    subline: "Displays, ports, cameras, speakers — stocked for same-day jobs.",
+    headline: "Stocked for same-day repairs",
+    subline:
+      "Displays, flexes, ports, cameras, speakers — the SKUs your workflow actually asks for.",
     floatImage:
       "https://images.unsplash.com/photo-1592899677859-90f0c5d7c0c8?auto=format&fit=crop&w=900&q=85",
     bgImage:

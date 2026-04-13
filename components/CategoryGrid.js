@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { HOME_SHORTCUT_CATS } from "@/data/navCategories";
+import TiltCard from "@/components/TiltCard";
 
 function ShortcutCard({ item, index }) {
   const href = `/shop?category=${encodeURIComponent(item.slug || item.filter)}`;
@@ -15,8 +16,9 @@ function ShortcutCard({ item, index }) {
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.45, delay: index * 0.06 }}
     >
-      <Link href={href} className="block">
-        <div className="group relative overflow-hidden rounded-2xl border border-black/[0.07] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-[#FFA500]/35 hover:shadow-[0_14px_40px_rgba(0,0,0,0.08)]">
+      <Link href={href} className="block h-full">
+        <TiltCard className="h-full">
+        <div className="group relative h-full overflow-hidden rounded-2xl border border-black/[0.07] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)] transition duration-300 hover:border-brand/35 hover:shadow-[0_14px_40px_rgba(0,0,0,0.08)]">
           <div className="relative aspect-[5/4] overflow-hidden bg-zinc-100">
             <Image
               src={item.image}
@@ -35,6 +37,7 @@ function ShortcutCard({ item, index }) {
             </div>
           </div>
         </div>
+        </TiltCard>
       </Link>
     </motion.div>
   );
@@ -52,7 +55,7 @@ export default function CategoryGrid() {
           transition={{ duration: 0.45 }}
           className="max-w-2xl"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFA500]">Quick path</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Quick path</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight text-black sm:text-4xl">Shop by category</h2>
           <p className="mt-2 text-sm text-black/55 sm:text-base">
             Jump straight into filtered stock — one tap from the home page.

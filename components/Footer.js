@@ -11,9 +11,9 @@ const policies = [
 
 export default function Footer() {
   return (
-    <footer className="relative mt-24 overflow-hidden border-t border-white/10 bg-black text-white">
-      <div className="pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-[#FFA500]/15 blur-[100px]" />
-      <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-[#FFA500]/10 blur-[90px]" />
+    <footer className="relative overflow-hidden border-t border-white/10 bg-black text-white">
+      <div className="pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-brand/15 blur-[100px]" />
+      <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-brand/10 blur-[90px]" />
 
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
@@ -29,7 +29,7 @@ export default function Footer() {
                 />
               </span>
               <div>
-                <p className="text-lg font-semibold tracking-tight">Chacha Mobile</p>
+                <p className="font-display text-lg font-semibold tracking-tight">Chacha Mobile</p>
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/45">
                   Premium parts
                 </p>
@@ -44,7 +44,7 @@ export default function Footer() {
                 href="https://wa.me/918126162661"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-[#25D366] hover:text-white"
+                className="icon-3d-hover inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-[#25D366] hover:text-white"
                 aria-label="WhatsApp"
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@ export default function Footer() {
               </a>
               <a
                 href="mailto:chachamobile8126@gmail.com"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 transition hover:bg-white/20"
+                className="icon-3d-hover inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 transition hover:bg-white/20"
                 aria-label="Email"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,7 +69,7 @@ export default function Footer() {
                 href="https://www.instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 transition hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:text-white"
+                className="icon-3d-hover inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 transition hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:text-white"
                 aria-label="Instagram"
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@ export default function Footer() {
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:col-span-7 lg:grid-cols-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
                 Explore
               </p>
               <ul className="mt-4 space-y-2.5 text-sm text-white/65">
@@ -104,7 +104,7 @@ export default function Footer() {
             </div>
             <FooterNavColumns />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
                 Policies
               </p>
               <ul className="mt-4 space-y-2.5 text-sm text-white/65">
@@ -118,7 +118,7 @@ export default function Footer() {
               </ul>
             </div>
             <div className="col-span-2 lg:col-span-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FFA500]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">
                 Contact
               </p>
               <ul className="mt-4 space-y-2 text-sm text-white/65">
@@ -138,7 +138,7 @@ export default function Footer() {
                 <li>
                   <a
                     href="https://chachamobile.in"
-                    className="transition hover:text-[#FFA500]"
+                    className="transition hover:text-brand"
                   >
                     chachamobile.in
                   </a>

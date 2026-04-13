@@ -29,7 +29,7 @@ export default function WhyChooseUs() {
         {items.map((it) => (
           <div
             key={it.title}
-            className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition hover:border-[#FFA500]/40 hover:shadow-md"
+            className="surface-3d-hover rounded-2xl border border-black/10 bg-white p-5 shadow-sm transition hover:border-brand/40 hover:shadow-md"
           >
             <h3 className="text-lg font-bold text-black">{it.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-black/70">{it.text}</p>

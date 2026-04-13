@@ -50,9 +50,15 @@ export default function HomeBrandShowcase() {
   const openBrand = displayBrands.find((b) => b._id === open);
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white via-zinc-50 to-white py-16 sm:py-24 lg:py-28">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FFA500]/50 to-transparent" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(80vw,600px)] w-[min(80vw,600px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FFA500]/[0.06] blur-[100px]" />
+    <section className="relative overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900 to-black py-16 sm:py-20 lg:py-28">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(255,102,0,0.12),transparent)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)`,
+          backgroundSize: "48px 48px",
+        }}
+      />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
         <motion.div
@@ -62,11 +68,11 @@ export default function HomeBrandShowcase() {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <p className="text-xs font-bold uppercase tracking-[0.4em] text-[#FFA500]">Official-grade lineup</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-black sm:text-4xl lg:text-5xl">
+          <p className="text-xs font-bold uppercase tracking-[0.4em] text-brand">Official-grade lineup</p>
+          <h2 className="font-display mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Brands technicians ask for first
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-black/60 sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/65 sm:text-base">
             Tap a brand. Models load from your database. One tap opens the shop with live filters.
           </p>
         </motion.div>
@@ -85,8 +91,8 @@ export default function HomeBrandShowcase() {
                 transition={{ delay: i * 0.08, duration: 0.45 }}
                 className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br shadow-md transition duration-300 ${
                   isOpen
-                    ? "border-[#FFA500] shadow-lg ring-1 ring-[#FFA500]/25"
-                    : "border-black/[0.08] hover:border-[#FFA500]/35 hover:shadow-lg"
+                    ? "border-brand shadow-lg ring-1 ring-brand/25"
+                    : "border-black/[0.08] hover:border-brand/35 hover:shadow-lg"
                 } ${meta.tone}`}
               >
                 <button
@@ -109,7 +115,7 @@ export default function HomeBrandShowcase() {
         </div>
 
         {displayBrands.length === 0 && (
-          <p className="mt-10 text-center text-sm text-black/50">
+          <p className="mt-10 text-center text-sm text-white/50">
             Add brands in Admin → Brands to unlock this section.
           </p>
         )}
@@ -129,7 +135,7 @@ export default function HomeBrandShowcase() {
                   <p className="text-lg font-bold text-white">
                     {openBrand.name}{" "}
                     <span className="text-white/50">·</span>{" "}
-                    <span className="text-sm font-medium text-[#FFA500]">Pick a model</span>
+                    <span className="text-sm font-medium text-brand">Pick a model</span>
                   </p>
                   <button
                     type="button"
@@ -148,7 +154,7 @@ export default function HomeBrandShowcase() {
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => goShop(openBrand._id, m._id)}
-                      className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-[#FFA500] hover:bg-[#FFA500]/15"
+                      className="surface-3d-hover rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-brand hover:bg-brand/15"
                     >
                       {m.name}
                     </motion.button>
