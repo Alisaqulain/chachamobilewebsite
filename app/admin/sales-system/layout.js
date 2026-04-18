@@ -9,7 +9,6 @@ const nav = [
   { href: "/admin/sales-system/categories", label: "Categories" },
   { href: "/admin/sales-system/qualities", label: "Qualities" },
   { href: "/admin/sales-system/suppliers", label: "Suppliers" },
-  { href: "/admin/sales-system/purchases", label: "Purchase Entry" },
   { href: "/admin/sales-system/sales", label: "Sales Entry" },
   { href: "/admin/sales-system/returns", label: "Returns" },
   { href: "/admin/sales-system/inventory", label: "Inventory" },

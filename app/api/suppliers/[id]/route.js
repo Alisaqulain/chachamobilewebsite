@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 import Supplier from "@/models/Supplier";
 import { getAdminFromCookies } from "@/lib/auth";
+import { UNKNOWN_SUPPLIER_NAME } from "@/lib/partsInventory";
 
 export async function PUT(request, context) {
   try {
@@ -16,6 +17,11 @@ export async function PUT(request, context) {
     const name = String(body?.name || "").trim();
     if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
     await connectDB();
+    const existing = await Supplier.findById(id).lean();
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (existing.name === UNKNOWN_SUPPLIER_NAME && name !== UNKNOWN_SUPPLIER_NAME) {
+      return NextResponse.json({ error: "Cannot rename the default supplier" }, { status: 400 });
+    }
     const supplier = await Supplier.findByIdAndUpdate(
       id,
       {
@@ -42,6 +48,11 @@ export async function DELETE(request, context) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
     await connectDB();
+    const target = await Supplier.findById(id).lean();
+    if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (target.name === UNKNOWN_SUPPLIER_NAME) {
+      return NextResponse.json({ error: "Cannot delete the default supplier" }, { status: 400 });
+    }
     const deleted = await Supplier.findByIdAndDelete(id).lean();
     if (!deleted) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ ok: true });

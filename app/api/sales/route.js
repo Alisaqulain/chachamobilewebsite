@@ -5,6 +5,7 @@ import { getAdminFromCookies } from "@/lib/auth";
 import Sale from "@/models/Sale";
 import Customer from "@/models/Customer";
 import { applyStockDeltas, getProductsMapByIds } from "@/lib/stock";
+import { incrementSoldQtyForSaleLineItems } from "@/lib/partsInventory";
 
 function rowTotal(row) {
   return Number(row.quantity || 0) * Number(row.price || 0);
@@ -111,6 +112,7 @@ export async function POST(request) {
         note: "Sales entry",
       }))
     );
+    await incrementSoldQtyForSaleLineItems(items);
     return NextResponse.json({ ok: true, saleId: String(sale._id) });
   } catch (e) {
     console.error(e);

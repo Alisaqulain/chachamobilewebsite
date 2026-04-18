@@ -56,6 +56,30 @@ function needsJwt(request) {
     return true;
   }
 
+  if (pathname.startsWith("/api/suppliers")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/inventory")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/purchases")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/sales")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/returns")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/customers")) {
+    return true;
+  }
+
   return false;
 }
 
@@ -115,5 +139,17 @@ export const config = {
     "/api/models/:path*",
     "/api/product-qualities",
     "/api/product-qualities/:path*",
+    "/api/suppliers",
+    "/api/suppliers/:path*",
+    "/api/inventory",
+    "/api/inventory/:path*",
+    "/api/purchases",
+    "/api/purchases/:path*",
+    "/api/sales",
+    "/api/sales/:path*",
+    "/api/returns",
+    "/api/returns/:path*",
+    "/api/customers",
+    "/api/customers/:path*",
   ],
 };
