@@ -376,7 +376,10 @@ export default function ShopClient() {
         </button>
       </form>
 
-      <div id="shop-grid" className="mt-10 scroll-mt-28 grid gap-8 lg:grid-cols-[minmax(260px,300px)_1fr] xl:gap-12">
+      <div
+        id="shop-grid"
+        className="mt-10 scroll-mt-[calc(7rem+env(safe-area-inset-top,0px))] grid gap-8 lg:grid-cols-[minmax(260px,300px)_1fr] xl:gap-12"
+      >
         <div className="hidden lg:block">{FilterSidebar}</div>
 
         <AnimatePresence>

@@ -5,9 +5,41 @@ import Product from "@/models/Product";
 import { getAdminFromCookies } from "@/lib/auth";
 import { slugify } from "@/utils/slugify";
 
+const DEFAULT_SALES_CATEGORIES = [
+  "Battery",
+  "Folder",
+  "OC Class",
+  "Back Panel",
+  "Body",
+  "Spare Parts",
+  "Frame",
+];
+
+async function ensureDefaultSalesCategories() {
+  const existing = await Category.find({}, { name: 1 }).lean();
+  const existingNames = new Set(existing.map((c) => String(c.name || "").trim().toLowerCase()));
+
+  const missing = DEFAULT_SALES_CATEGORIES.filter(
+    (name) => !existingNames.has(name.trim().toLowerCase())
+  );
+
+  if (missing.length === 0) return;
+
+  const ops = missing.map((name) => ({
+    updateOne: {
+      filter: { slug: slugify(name) },
+      update: { $setOnInsert: { name, slug: slugify(name), image: "" } },
+      upsert: true,
+    },
+  }));
+
+  await Category.bulkWrite(ops, { ordered: false });
+}
+
 export async function GET(request) {
   try {
     await connectDB();
+    await ensureDefaultSalesCategories();
     const { searchParams } = new URL(request.url);
     const withCounts = searchParams.get("withCounts") === "1";
 

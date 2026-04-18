@@ -7,6 +7,7 @@ import PhoneModel from "@/models/PhoneModel";
 import { getAdminFromCookies } from "@/lib/auth";
 import { serializeProduct } from "@/lib/productSerialize";
 import { migrateProductRefsOnce } from "@/lib/migrateProductRefs";
+import { resolveProductQualityName } from "@/lib/productQualityHelpers";
 import mongoose from "mongoose";
 
 function escapeRegex(s) {
@@ -114,15 +115,22 @@ export async function POST(request) {
       brandId,
       modelId,
       price,
+      purchasePrice,
+      sellingPrice,
+      stock,
       quality,
       description,
       images,
       featured,
     } = body;
 
-    if (!name || !categoryId || !brandId || !modelId || price == null || !quality) {
+    const resolvedSelling = sellingPrice != null ? Number(sellingPrice) : Number(price);
+    if (!name || !categoryId || !brandId || !modelId || !Number.isFinite(resolvedSelling) || !quality) {
       return NextResponse.json(
-        { error: "Missing required fields (name, categoryId, brandId, modelId, price, quality)" },
+        {
+          error:
+            "Missing required fields (name, categoryId, brandId, modelId, sellingPrice, quality)",
+        },
         { status: 400 }
       );
     }
@@ -144,6 +152,11 @@ export async function POST(request) {
       return NextResponse.json({ error: "Model does not belong to selected brand" }, { status: 400 });
     }
 
+    const qRes = await resolveProductQualityName(quality);
+    if (!qRes.ok) {
+      return NextResponse.json({ error: qRes.error }, { status: 400 });
+    }
+
     const product = await Product.create({
       name: String(name).trim(),
       categoryId,
@@ -151,8 +164,11 @@ export async function POST(request) {
       modelId,
       brand: b.name,
       model: m.name,
-      price: Number(price),
-      quality,
+      price: resolvedSelling,
+      purchasePrice: Number(purchasePrice ?? 0),
+      sellingPrice: resolvedSelling,
+      stock: Number(stock ?? 0),
+      quality: qRes.name,
       description: description != null ? String(description) : "",
       images: Array.isArray(images) ? images.filter(Boolean) : [],
       featured: Boolean(featured),

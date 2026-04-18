@@ -37,9 +37,16 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Smooth document scrolling + anchor offset for fixed navbar (4.5rem) */
+/* Smooth document scrolling + anchor offset for fixed navbar (4.5rem + notch) */
 html {
-  scroll-padding-top: 4.5rem;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: clip;
+  scroll-padding-top: calc(4.5rem + env(safe-area-inset-top, 0px));
+}
+
+body {
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: no-preference) {

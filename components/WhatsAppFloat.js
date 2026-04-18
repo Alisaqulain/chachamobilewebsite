@@ -12,7 +12,7 @@ export default function WhatsAppFloat() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="icon-3d-hover btn-3d-pop fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:shadow-xl sm:bottom-6 sm:right-6"
+      className="icon-3d-hover btn-3d-pop fixed bottom-[max(1rem,env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] z-50 flex h-14 w-14 touch-manipulation items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg ring-4 ring-white transition hover:shadow-xl max-[380px]:h-12 max-[380px]:w-12"
       aria-label="Chat on WhatsApp"
     >
       <span

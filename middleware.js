@@ -11,12 +11,7 @@ function needsJwt(request) {
   }
 
   if (pathname.startsWith("/admin")) {
-    if (
-      pathname === "/admin" ||
-      pathname === "/admin/login" ||
-      pathname.startsWith("/admin/website") ||
-      pathname.startsWith("/admin/sell")
-    ) {
+    if (pathname === "/admin/login") {
       return false;
     }
     return true;
@@ -50,6 +45,14 @@ function needsJwt(request) {
     (pathname.startsWith("/api/brands") || pathname.startsWith("/api/models")) &&
     method !== "GET"
   ) {
+    return true;
+  }
+
+  if (pathname === "/api/product-qualities" && method === "POST") {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/product-qualities/") && (method === "PUT" || method === "DELETE")) {
     return true;
   }
 
@@ -110,5 +113,7 @@ export const config = {
     "/api/brands/:path*",
     "/api/models",
     "/api/models/:path*",
+    "/api/product-qualities",
+    "/api/product-qualities/:path*",
   ],
 };

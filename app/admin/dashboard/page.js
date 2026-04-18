@@ -24,7 +24,7 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-extrabold tracking-tight text-black">Dashboard</h1>
-      <p className="mt-1 text-sm text-black/60">Overview of your catalogue and latest additions.</p>
+      <p className="mt-1 text-sm text-black/60">Simple overview for stock, billing entries, and parties.</p>
 
       {error && (
         <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>
@@ -32,10 +32,10 @@ export default function AdminDashboardPage() {
 
       {data && (
         <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Total products</p>
-              <p className="mt-2 text-4xl font-black text-black">{data.productCount}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Products</p>
+              <p className="mt-2 text-4xl font-black text-black">{data.productCount || 0}</p>
               <Link
                 href="/admin/products"
                 className="mt-4 inline-block text-sm font-semibold text-brand-dim hover:underline"
@@ -44,14 +44,52 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
             <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Total categories</p>
-              <p className="mt-2 text-4xl font-black text-black">{data.categoryCount}</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Inventory alert</p>
+              <p className={`mt-2 text-4xl font-black ${Number(data.lowStockCount || 0) > 0 ? "text-red-600" : "text-black"}`}>
+                {data.lowStockCount || 0}
+              </p>
               <Link
-                href="/admin/categories"
+                href="/admin/inventory"
                 className="mt-4 inline-block text-sm font-semibold text-brand-dim hover:underline"
               >
-                Manage categories →
+                Check inventory →
               </Link>
+            </div>
+            <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Parties</p>
+              <p className="mt-2 text-2xl font-black text-black">
+                {data.supplierCount || 0} Suppliers
+              </p>
+              <p className="mt-1 text-2xl font-black text-black">{data.customerCount || 0} Customers</p>
+              <Link
+                href="/admin/suppliers"
+                className="mt-4 inline-block text-sm font-semibold text-brand-dim hover:underline"
+              >
+                Open parties →
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-black/10 bg-white p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-black/45">Entries</p>
+              <p className="mt-2 text-sm font-semibold text-black/80">
+                Purchase: <span className="text-black">{data.purchaseCount || 0}</span>
+              </p>
+              <p className="mt-1 text-sm font-semibold text-black/80">
+                Sales: <span className="text-black">{data.saleCount || 0}</span>
+              </p>
+              <p className="mt-1 text-sm font-semibold text-black/80">
+                Returns: <span className="text-black">{data.returnCount || 0}</span>
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                <Link href="/admin/purchases" className="font-semibold text-brand-dim hover:underline">
+                  Purchases
+                </Link>
+                <Link href="/admin/sales" className="font-semibold text-brand-dim hover:underline">
+                  Sales
+                </Link>
+                <Link href="/admin/returns" className="font-semibold text-brand-dim hover:underline">
+                  Returns
+                </Link>
+              </div>
             </div>
           </div>
 

@@ -154,7 +154,7 @@ export default function HomeCategoryMega() {
                     >
                       {item.blurb}
                     </p>
-                    <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-brand opacity-0 transition duration-300 group-hover:opacity-100">
+                    <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-brand opacity-100 transition duration-300 lg:opacity-0 lg:group-hover:opacity-100">
                       Enter aisle
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />

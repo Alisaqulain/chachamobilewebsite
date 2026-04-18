@@ -28,7 +28,7 @@ export default function ScrollToTop() {
               window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
           }}
-          className="icon-3d-hover fixed bottom-24 left-5 z-40 flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-white/90 text-black shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md transition hover:border-brand/50 hover:shadow-lg sm:left-8"
+          className="icon-3d-hover fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-[max(1rem,env(safe-area-inset-left,0px))] z-40 flex h-12 w-12 touch-manipulation items-center justify-center rounded-2xl border border-black/10 bg-white/90 text-black shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md transition hover:border-brand/50 hover:shadow-lg sm:left-[max(2rem,env(safe-area-inset-left,0px))]"
           aria-label="Scroll to top"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

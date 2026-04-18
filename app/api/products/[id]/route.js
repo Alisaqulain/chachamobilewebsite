@@ -6,6 +6,7 @@ import PhoneModel from "@/models/PhoneModel";
 import { getAdminFromCookies } from "@/lib/auth";
 import { serializeProduct } from "@/lib/productSerialize";
 import { migrateProductRefsOnce } from "@/lib/migrateProductRefs";
+import { resolveProductQualityName } from "@/lib/productQualityHelpers";
 import mongoose from "mongoose";
 
 export async function GET(request, context) {
@@ -50,6 +51,9 @@ export async function PUT(request, context) {
       brandId,
       modelId,
       price,
+      purchasePrice,
+      sellingPrice,
+      stock,
       quality,
       description,
       images,
@@ -61,7 +65,19 @@ export async function PUT(request, context) {
     if (name != null) update.name = String(name).trim();
     if (categoryId != null) update.categoryId = categoryId;
     if (price != null) update.price = Number(price);
-    if (quality != null) update.quality = quality;
+    if (purchasePrice != null) update.purchasePrice = Number(purchasePrice);
+    if (sellingPrice != null) {
+      update.sellingPrice = Number(sellingPrice);
+      update.price = Number(sellingPrice);
+    }
+    if (stock != null) update.stock = Math.max(0, Number(stock));
+    if (quality != null) {
+      const qRes = await resolveProductQualityName(quality);
+      if (!qRes.ok) {
+        return NextResponse.json({ error: qRes.error }, { status: 400 });
+      }
+      update.quality = qRes.name;
+    }
     if (description != null) update.description = String(description);
     if (images != null) update.images = Array.isArray(images) ? images.filter(Boolean) : [];
     if (featured != null) update.featured = Boolean(featured);

@@ -6,39 +6,35 @@ import { motion } from "framer-motion";
 
 const cards = [
   {
-    title: "Maintain Website",
-    description: "Manage products, categories, and catalogue content connected to your database.",
-    href: "/admin/website",
-    cta: "Open dashboard",
+    title: "Manage Website",
+    description:
+      "Public shop content manager. Maintain website products, categories, brands, and models used by the frontend catalogue.",
+    href: "/admin/website/dashboard",
+    cta: "Open website management",
     icon: (
       <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={1.5}
-          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-        />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          d="M3 5a2 2 0 012-2h14a2 2 0 012 2v4H3V5zm0 6h18v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8zm4 3h4m2 0h4"
         />
       </svg>
     ),
   },
   {
-    title: "Maintain Sell",
-    description: "Selling workspace for orders, fulfilment, and inventory (UI preview — future).",
-    href: "/admin/sell",
-    cta: "Open sell panel",
+    title: "Manage Sales System",
+    description:
+      "Internal Tally-like billing and inventory workflow. Manage parties, purchases, sales, returns, and real-time stock.",
+    href: "/admin/sales-system/dashboard",
+    cta: "Open sales system",
     icon: (
       <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={1.5}
-          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+          d="M4 7h16M7 3v4m10-4v4M6 11h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2zm2 4h4m0 0v4m0-4h4"
         />
       </svg>
     ),
@@ -65,19 +61,13 @@ export default function AdminEntryPage() {
           <h1 className="mt-8 text-3xl font-semibold tracking-tight text-black sm:text-4xl">
             Chacha Mobile — Control centre
           </h1>
-          <p className="mx-auto mt-3 max-w-lg text-sm text-black/55 sm:text-base">
-            Choose a workspace. Website tools connect to your live admin console; Sell is a
-            premium UI shell for what comes next.
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-black/55 sm:text-base">
+            Choose one system. Website and Sales are fully separated in routes, navigation, and
+            operational logic.
           </p>
-          <Link
-            href="/admin/login"
-            className="mt-6 inline-block text-sm font-semibold text-brand-dim hover:underline"
-          >
-            Staff login → catalogue admin
-          </Link>
         </motion.div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-2">
+        <div className="mx-auto mt-16 grid max-w-4xl gap-8 md:grid-cols-2">
           {cards.map((card, i) => (
             <motion.div
               key={card.href}

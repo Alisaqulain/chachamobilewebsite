@@ -96,7 +96,7 @@ export default function HeroSlider() {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto flex min-h-[min(92svh,860px)] max-w-7xl flex-col items-center px-5 pb-14 pt-[calc(4.5rem+3rem)] text-center sm:px-8 sm:pb-12 sm:pt-[calc(4.5rem+4rem)] lg:px-12 lg:pt-[calc(4.5rem+5rem)]">
+        <div className="relative z-10 mx-auto flex min-h-[min(92svh,860px)] max-w-7xl flex-col items-center px-4 pb-14 pt-[calc(4.5rem+env(safe-area-inset-top,0px)+2.25rem)] text-center sm:px-8 sm:pb-12 sm:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+4rem)] lg:px-12 lg:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+5rem)]">
           <div className="flex w-full max-w-3xl flex-1 flex-col justify-center">
             <AnimatePresence mode="wait">
               <motion.div

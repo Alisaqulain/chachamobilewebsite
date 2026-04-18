@@ -12,7 +12,9 @@ export default function MainShell({ children }) {
 
   return (
     <main
-      className={`flex min-h-0 flex-1 flex-col ${isHome ? "pt-0" : "pt-[4.5rem]"}`}
+      className={`flex min-h-0 flex-1 flex-col ${
+        isHome ? "pt-0" : "pt-[calc(4.5rem+env(safe-area-inset-top,0px))]"
+      }`}
     >
       {children}
     </main>

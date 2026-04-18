@@ -19,7 +19,13 @@ export default function AdminChrome({ children }) {
     pathname.startsWith("/admin/products") ||
     pathname.startsWith("/admin/categories") ||
     pathname.startsWith("/admin/brands") ||
-    pathname.startsWith("/admin/models");
+    pathname.startsWith("/admin/models") ||
+    pathname.startsWith("/admin/suppliers") ||
+    pathname.startsWith("/admin/customers") ||
+    pathname.startsWith("/admin/purchases") ||
+    pathname.startsWith("/admin/sales") ||
+    pathname.startsWith("/admin/returns") ||
+    pathname.startsWith("/admin/inventory");
 
   const [state, setState] = useState({
     loading: isStaffPanel && !isLogin,
@@ -107,12 +113,12 @@ export default function AdminChrome({ children }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <Link href="/admin/dashboard" className="hidden items-center gap-2 sm:flex">
+            <Link href="/admin" className="hidden items-center gap-2 sm:flex">
               <span className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-black/10 bg-white">
                 <Image src="/logo.png" alt="" fill className="object-contain p-0.5" sizes="32px" />
               </span>
               <span className="text-sm font-bold text-black">
-                Catalogue <span className="text-brand">Panel</span>
+                Back office <span className="text-brand">console</span>
               </span>
             </Link>
           </div>

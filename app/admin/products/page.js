@@ -89,7 +89,8 @@ export default function AdminProductsPage() {
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Brand / Model</th>
                 <th className="px-4 py-3">Quality</th>
-                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">Buy / Sell</th>
+                <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Featured</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -114,7 +115,15 @@ export default function AdminProductsPage() {
                     <span className="text-xs">{p.model}</span>
                   </td>
                   <td className="px-4 py-3 text-xs font-semibold">{p.quality}</td>
-                  <td className="px-4 py-3 font-bold">₹{Number(p.price).toLocaleString("en-IN")}</td>
+                  <td className="px-4 py-3 text-black/75">
+                    ₹{Number(p.purchasePrice || 0).toLocaleString("en-IN")} /{" "}
+                    <span className="font-bold text-black">
+                      ₹{Number(p.sellingPrice ?? p.price ?? 0).toLocaleString("en-IN")}
+                    </span>
+                  </td>
+                  <td className={`px-4 py-3 font-bold ${Number(p.stock || 0) <= 5 ? "text-red-600" : "text-black"}`}>
+                    {Number(p.stock || 0)}
+                  </td>
                   <td className="px-4 py-3">{p.featured ? "Yes" : "No"}</td>
                   <td className="px-4 py-3 text-right">
                     <Link

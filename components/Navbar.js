@@ -17,6 +17,8 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [mega, setMega] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const closeTimer = useRef(null);
 
@@ -50,6 +52,30 @@ export default function Navbar() {
     startTransition(() => setMounted(true));
   }, []);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setMobileSearchOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen && !mobileSearchOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen, mobileSearchOpen]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen]);
+
   const openMega = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setMega(true);
@@ -66,6 +92,8 @@ export default function Navbar() {
     if (!term) return;
     router.push(`/shop?search=${encodeURIComponent(term)}`);
     setSearchOpen(false);
+    setMobileSearchOpen(false);
+    setMobileMenuOpen(false);
     setQ("");
   };
 
@@ -83,7 +111,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed left-0 right-0 top-0 z-[100] w-full border-b transition-[background-color,box-shadow,backdrop-filter,border-color] duration-500 ${
+      className={`fixed left-0 right-0 top-0 z-[100] w-full border-b pt-[env(safe-area-inset-top,0px)] transition-[background-color,box-shadow,backdrop-filter,border-color] duration-500 ${
         solidNav
           ? "border-black/[0.06] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.06)] backdrop-blur-xl"
           : "border-transparent shadow-none backdrop-blur-none bg-transparent"
@@ -105,8 +133,8 @@ export default function Navbar() {
         }`}
         aria-hidden
       />
-      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
-        <Link href="/" className="group flex shrink-0 items-center gap-3">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl min-w-0 items-center gap-2 px-3 sm:gap-6 sm:px-6">
+        <Link href="/" className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
           <span
             className={`icon-3d-hover relative flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition duration-300 group-hover:shadow-[0_8px_32px_rgba(255,165,0,0.28)] ${
               solidNav ? "border-black/[0.06] ring-1 ring-black/[0.04]" : "border-white/25 ring-1 ring-white/15"
@@ -225,7 +253,27 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSearchOpen((v) => !v);
+              setMobileMenuOpen(false);
+            }}
+            className={`icon-3d-hover flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors duration-500 sm:hidden ${iconShell}`}
+            aria-expanded={mobileSearchOpen}
+            aria-label="Search shop"
+          >
+            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.75}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </button>
+
           <AnimatePresence mode="wait">
             {searchOpen ? (
               <motion.form
@@ -284,7 +332,7 @@ export default function Navbar() {
 
           <Link
             href="/cart"
-            className={`relative flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors duration-500 sm:w-auto sm:gap-2 sm:px-4 ${iconShell}`}
+            className={`relative flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors duration-500 sm:h-11 sm:w-auto sm:gap-2 sm:px-4 ${iconShell}`}
           >
             <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -306,7 +354,7 @@ export default function Navbar() {
             href="https://wa.me/918126162661"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-3d-pop flex h-11 w-11 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md transition hover:shadow-lg"
+            className="btn-3d-pop flex h-10 w-10 items-center justify-center rounded-2xl bg-[#25D366] text-white shadow-md transition hover:shadow-lg sm:h-11 sm:w-11"
             aria-label="WhatsApp"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -314,51 +362,144 @@ export default function Navbar() {
             </svg>
           </a>
 
-          <details className="relative lg:hidden">
-            <summary
-              className={`flex h-11 list-none items-center justify-center rounded-2xl border px-3 transition-colors duration-500 [&::-webkit-details-marker]:hidden ${iconShell}`}
-            >
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen((v) => !v);
+              setMobileSearchOpen(false);
+            }}
+            className={`flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors duration-500 lg:hidden sm:h-11 sm:w-11 ${iconShell} ${mobileMenuOpen ? "border-brand/50 ring-2 ring-brand/25" : ""}`}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-drawer"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileMenuOpen ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            </summary>
-            <div className="absolute right-0 z-[130] mt-2 w-64 overflow-hidden rounded-2xl border border-white/10 bg-black/95 py-2 shadow-2xl ring-1 ring-white/5 backdrop-blur-xl">
-              <Link href="/" className="block px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
-                Home
-              </Link>
-              <Link href="/shop" className="block px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
-                Shop
-              </Link>
-              <div className="border-t border-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                Categories
-              </div>
-              {navCategories.map((c) => (
-                <Link
-                  key={c.slug}
-                  href={`/shop?category=${encodeURIComponent(String(c.slug || "").toLowerCase())}`}
-                  className="block px-4 py-2 text-sm text-white/75 hover:bg-white/10"
-                >
-                  {c.label}
-                </Link>
-              ))}
-              <Link href="/contact" className="block border-t border-white/10 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/10">
-                Contact
-              </Link>
-              <form
-                onSubmit={onSearch}
-                className="border-t border-white/10 p-3"
-              >
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search shop…"
-                  className="w-full rounded-xl border border-white/15 bg-zinc-900/80 px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-brand/50"
-                />
-              </form>
-            </div>
-          </details>
+            )}
+          </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {mobileSearchOpen ? (
+          <motion.div
+            key="mobile-search"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="fixed left-0 right-0 z-[110] border-b border-black/10 bg-white px-3 py-3 shadow-lg sm:hidden"
+            style={{ top: "calc(4.5rem + env(safe-area-inset-top, 0px))" }}
+          >
+            <form onSubmit={onSearch} className="mx-auto flex max-w-7xl gap-2">
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search parts, models…"
+                className="min-w-0 flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-base text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-brand/30"
+                enterKeyHint="search"
+              />
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(false)}
+                className="shrink-0 rounded-2xl px-3 text-sm font-semibold text-zinc-600"
+              >
+                Cancel
+              </button>
+            </form>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {mobileMenuOpen ? (
+          <>
+            <motion.button
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[125] bg-black/50 backdrop-blur-[2px] lg:hidden"
+              aria-label="Close menu"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.nav
+              id="mobile-nav-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site menu"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 380, damping: 36 }}
+              className="fixed bottom-0 right-0 z-[130] flex w-[min(100%,20rem)] flex-col border-l border-white/10 bg-zinc-950 shadow-2xl lg:hidden"
+              style={{
+                top: "calc(4.5rem + env(safe-area-inset-top, 0px))",
+                paddingBottom: "env(safe-area-inset-bottom, 0px)",
+              }}
+            >
+              <div className="flex-1 overflow-y-auto overscroll-contain py-2">
+                <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/shop"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  Shop
+                </Link>
+                <div className="mx-5 my-2 border-t border-white/10" />
+                <p className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  Categories
+                </p>
+                {navCategories.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/shop?category=${encodeURIComponent(String(c.slug || "").toLowerCase())}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-5 py-2.5 text-sm text-white/75 active:bg-white/10"
+                  >
+                    {c.label}
+                  </Link>
+                ))}
+                <div className="mx-5 my-2 border-t border-white/10" />
+                <Link
+                  href="/contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  Contact
+                </Link>
+                <form onSubmit={onSearch} className="border-t border-white/10 p-4">
+                  <label className="sr-only" htmlFor="mobile-drawer-search">
+                    Search shop
+                  </label>
+                  <input
+                    id="mobile-drawer-search"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search shop…"
+                    className="w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-3 text-base text-white outline-none placeholder:text-white/35 focus:border-brand/50"
+                  />
+                </form>
+              </div>
+            </motion.nav>
+          </>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }

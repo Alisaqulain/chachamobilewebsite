@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-const qualities = ["Original", "High", "Low"];
 
 function normalizeQuality(q) {
   if (q === "High Copy") return "High";
@@ -17,6 +15,7 @@ export default function ProductForm({ productId, initial }) {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
+  const [qualityOptions, setQualityOptions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -26,7 +25,9 @@ export default function ProductForm({ productId, initial }) {
     categoryId: initial?.categoryId?._id || initial?.categoryId || "",
     brandId: initial?.brandId || "",
     modelId: initial?.modelId || "",
-    price: initial?.price != null ? String(initial.price) : "",
+    purchasePrice: initial?.purchasePrice != null ? String(initial.purchasePrice) : "",
+    sellingPrice: initial?.sellingPrice != null ? String(initial.sellingPrice) : initial?.price != null ? String(initial.price) : "",
+    stock: initial?.stock != null ? String(initial.stock) : "0",
     quality: normalizeQuality(initial?.quality),
     description: initial?.description || "",
     images: initial?.images?.length ? initial.images : [],
@@ -35,16 +36,28 @@ export default function ProductForm({ productId, initial }) {
 
   useEffect(() => {
     (async () => {
-      const [cRes, bRes] = await Promise.all([
+      const [cRes, bRes, qRes] = await Promise.all([
         fetch("/api/categories"),
         fetch("/api/brands"),
+        fetch("/api/product-qualities"),
       ]);
       const cJson = await cRes.json();
       const bJson = await bRes.json();
+      const qJson = await qRes.json();
       if (cRes.ok) setCategories(cJson.categories || []);
       if (bRes.ok) setBrands(bJson.brands || []);
+      if (qRes.ok) setQualityOptions(qJson.qualities || []);
     })();
   }, []);
+
+  const qualitySelectList = useMemo(() => {
+    const names = new Set(qualityOptions.map((q) => q.name));
+    const q = form.quality;
+    if (q && !names.has(q)) {
+      return [...qualityOptions, { _id: "_legacy", name: q, sortOrder: 999 }];
+    }
+    return qualityOptions;
+  }, [qualityOptions, form.quality]);
 
   useEffect(() => {
     if (!form.brandId) {
@@ -106,7 +119,9 @@ export default function ProductForm({ productId, initial }) {
         categoryId: form.categoryId,
         brandId: form.brandId,
         modelId: form.modelId,
-        price: Number(form.price),
+        purchasePrice: Number(form.purchasePrice),
+        sellingPrice: Number(form.sellingPrice),
+        stock: Number(form.stock),
         quality: form.quality,
         description: form.description,
         images: form.images,
@@ -201,16 +216,40 @@ export default function ProductForm({ productId, initial }) {
         </select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label className="text-xs font-bold uppercase text-black/45">Price (₹)</label>
+          <label className="text-xs font-bold uppercase text-black/45">Purchase price (₹)</label>
           <input
             required
             type="number"
             min={0}
             step={1}
-            value={form.price}
-            onChange={(e) => setField("price", e.target.value)}
+            value={form.purchasePrice}
+            onChange={(e) => setField("purchasePrice", e.target.value)}
+            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold uppercase text-black/45">Selling price (₹)</label>
+          <input
+            required
+            type="number"
+            min={0}
+            step={1}
+            value={form.sellingPrice}
+            onChange={(e) => setField("sellingPrice", e.target.value)}
+            className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-bold uppercase text-black/45">Opening stock</label>
+          <input
+            required
+            type="number"
+            min={0}
+            step={1}
+            value={form.stock}
+            onChange={(e) => setField("stock", e.target.value)}
             className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
           />
         </div>
@@ -222,9 +261,9 @@ export default function ProductForm({ productId, initial }) {
             onChange={(e) => setField("quality", e.target.value)}
             className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
           >
-            {qualities.map((q) => (
-              <option key={q} value={q}>
-                {q}
+            {qualitySelectList.map((q) => (
+              <option key={q._id} value={q.name}>
+                {q.name}
               </option>
             ))}
           </select>
