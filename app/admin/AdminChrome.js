@@ -101,11 +101,11 @@ export default function AdminChrome({ children }) {
       <AdminSidebar mobileOpen={menuOpen} onNavigate={() => setMenuOpen(false)} />
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3 shadow-sm lg:px-6">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] shadow-sm sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              className="rounded-lg border border-black/10 p-2 lg:hidden"
+              className="touch-manipulation rounded-xl border border-black/10 bg-white p-3 lg:hidden"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Open menu"
             >
@@ -122,25 +122,33 @@ export default function AdminChrome({ children }) {
               </span>
             </Link>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
-            <span className="hidden text-black/55 md:inline">{state.email}</span>
-            <Link href="/admin" className="font-semibold text-black/50 hover:text-black">
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
+            <span className="hidden max-w-[12rem] truncate text-black/55 md:inline">{state.email}</span>
+            <Link
+              href="/admin"
+              className="inline-flex min-h-10 touch-manipulation items-center justify-center rounded-lg px-2 font-semibold text-black/50 hover:text-black"
+            >
               Hub
             </Link>
-            <Link href="/" className="font-semibold text-brand-dim hover:underline">
+            <Link
+              href="/"
+              className="inline-flex min-h-10 touch-manipulation items-center font-semibold text-brand-dim hover:underline"
+            >
               View site
             </Link>
             <button
               type="button"
               onClick={logout}
-              className="rounded-full bg-black px-3 py-1.5 text-xs font-bold text-brand"
+              className="touch-manipulation rounded-full bg-black px-4 py-2 text-xs font-bold text-brand active:opacity-90"
             >
               Logout
             </button>
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="flex-1 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] sm:px-6 lg:px-8 lg:py-8">
+          {children}
+        </main>
       </div>
     </div>
   );

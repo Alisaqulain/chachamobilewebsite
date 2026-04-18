@@ -15,7 +15,7 @@ export default function Footer() {
       <div className="pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-brand/15 blur-[100px]" />
       <div className="pointer-events-none absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-brand/10 blur-[90px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-7xl px-4 py-16 pb-[max(4rem,env(safe-area-inset-bottom,0px))] sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-5">
             <div className="flex items-center gap-3">
@@ -91,8 +91,28 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/services" className="transition hover:text-white">
+                    Services
+                  </Link>
+                </li>
+                <li>
                   <Link href="/about" className="transition hover:text-white">
                     About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/order-guide" className="transition hover:text-white">
+                    How to order
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/faq" className="transition hover:text-white">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/warranty" className="transition hover:text-white">
+                    Warranty
                   </Link>
                 </li>
                 <li>

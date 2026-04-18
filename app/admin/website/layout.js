@@ -113,11 +113,11 @@ export default function WebsiteAdminLayout({ children }) {
       </AnimatePresence>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-black/[0.06] bg-white/75 px-4 py-4 backdrop-blur-xl lg:px-8">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-black/[0.06] bg-white/75 px-4 py-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] backdrop-blur-xl lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
-              className="rounded-xl border border-black/10 bg-white p-2.5 shadow-sm lg:hidden"
+              className="touch-manipulation rounded-xl border border-black/10 bg-white p-3 shadow-sm lg:hidden"
               aria-expanded={menuOpen}
               aria-label={menuOpen ? "Close navigation" : "Open navigation"}
               onClick={() => setMenuOpen((o) => !o)}
@@ -144,7 +144,7 @@ export default function WebsiteAdminLayout({ children }) {
             Sales system
           </Link>
         </header>
-        <div className="p-4 lg:p-10">{children}</div>
+        <div className="p-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] lg:p-10">{children}</div>
       </div>
     </div>
   );

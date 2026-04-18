@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
+    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12 pt-[max(2rem,env(safe-area-inset-top,0px))] pb-[max(2rem,env(safe-area-inset-bottom,0px))]">
       <div className="rounded-3xl border border-black/10 bg-white p-8 shadow-xl">
         <div className="mx-auto mb-6 flex justify-center">
           <span className="relative flex h-20 w-20 overflow-hidden rounded-full border border-black/10 bg-white shadow-md ring-2 ring-brand/25">

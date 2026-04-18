@@ -180,6 +180,14 @@ export default function Navbar() {
           >
             Shop
           </Link>
+          <Link
+            href="/faq"
+            className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors duration-500 ${
+              pathname === "/faq" ? "bg-zinc-900 text-white hover:bg-zinc-800" : navIdle
+            }`}
+          >
+            FAQ
+          </Link>
 
           <div
             className="relative"
@@ -450,16 +458,51 @@ export default function Navbar() {
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
                 >
                   Home
                 </Link>
                 <Link
                   href="/shop"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
                 >
                   Shop
+                </Link>
+                <Link
+                  href="/services"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  Services
+                </Link>
+                <Link
+                  href="/about"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  About
+                </Link>
+                <Link
+                  href="/order-guide"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  How to order
+                </Link>
+                <Link
+                  href="/faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  FAQ
+                </Link>
+                <Link
+                  href="/warranty"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                >
+                  Warranty
                 </Link>
                 <div className="mx-5 my-2 border-t border-white/10" />
                 <p className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
@@ -470,7 +513,7 @@ export default function Navbar() {
                     key={c.slug}
                     href={`/shop?category=${encodeURIComponent(String(c.slug || "").toLowerCase())}`}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-5 py-2.5 text-sm text-white/75 active:bg-white/10"
+                    className="block min-h-11 px-5 py-3 text-sm text-white/75 active:bg-white/10"
                   >
                     {c.label}
                   </Link>
@@ -479,7 +522,7 @@ export default function Navbar() {
                 <Link
                   href="/contact"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
+                  className="block min-h-12 px-5 py-3.5 text-[15px] font-semibold text-white/90 active:bg-white/10"
                 >
                   Contact
                 </Link>

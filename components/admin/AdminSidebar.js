@@ -9,18 +9,18 @@ export default function AdminSidebar({ mobileOpen, onNavigate }) {
 
   const linkClass = (href) => {
     const active = pathname === href || pathname.startsWith(`${href}/`);
-    return `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+    return `flex min-h-11 touch-manipulation items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition lg:min-h-0 lg:py-2.5 ${
       active ? "bg-brand text-black" : "text-white/70 hover:bg-white/10 hover:text-white"
     }`;
   };
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-black/10 bg-zinc-950 text-white transition-transform duration-200 ease-out lg:static lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-40 w-[min(100%,18rem)] max-w-[100vw] transform border-r border-black/10 bg-zinc-950 text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none lg:translate-x-0 ${
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      }`}
+      } pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] lg:pt-0 lg:pb-0`}
     >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
           <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white">
             <Image src="/logo.png" alt="" fill className="object-contain p-0.5" sizes="40px" />
