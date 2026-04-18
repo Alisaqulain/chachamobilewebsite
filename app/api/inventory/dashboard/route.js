@@ -6,11 +6,24 @@ import Supplier from "@/models/Supplier";
 import Category from "@/models/Category";
 import PartsPurchase from "@/models/PartsPurchase";
 import PartsPurchaseReturn from "@/models/PartsPurchaseReturn";
+import Sale from "@/models/Sale";
 import { netStock } from "@/lib/partsInventory";
 
 const LOW = 5;
 /** Day boundaries for rollups (India). */
 const TZ = "Asia/Kolkata";
+
+function rollingMonthKeys(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    out.push(`${y}-${m}`);
+  }
+  return out;
+}
 
 export async function GET() {
   try {
@@ -20,6 +33,10 @@ export async function GET() {
 
     const generatedAt = new Date().toISOString();
     const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000);
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+    twelveMonthsAgo.setDate(1);
+    twelveMonthsAgo.setHours(0, 0, 0, 0);
 
     const [
       groups,
@@ -32,6 +49,8 @@ export async function GET() {
       purchasesByDay,
       recentPurchaseLines,
       recentReturnLines,
+      partsByMonth,
+      salesByMonth,
     ] = await Promise.all([
       InventoryStockGroup.find().lean(),
       Supplier.countDocuments(),
@@ -68,7 +87,50 @@ export async function GET() {
         .limit(15)
         .select("partsPurchaseId supplierId quantity date notes")
         .lean(),
+      PartsPurchase.aggregate([
+        { $match: { date: { $gte: twelveMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
+            amount: { $sum: "$lineTotal" },
+            lines: { $sum: 1 },
+            units: { $sum: "$quantity" },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      Sale.aggregate([
+        { $match: { date: { $gte: twelveMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
+            amount: { $sum: "$totalAmount" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
     ]);
+
+    const monthKeys = rollingMonthKeys(12);
+    const pm = new Map(partsByMonth.map((x) => [x._id, x]));
+    const sm = new Map(salesByMonth.map((x) => [x._id, x]));
+    const monthlyOverview = monthKeys.map((month) => ({
+      month,
+      partsPurchaseTotal: Number(pm.get(month)?.amount || 0),
+      partsLines: Number(pm.get(month)?.lines || 0),
+      partsUnits: Number(pm.get(month)?.units || 0),
+      shopSalesTotal: Number(sm.get(month)?.amount || 0),
+      shopSalesCount: Number(sm.get(month)?.count || 0),
+    }));
+    const cur = monthlyOverview[monthlyOverview.length - 1];
+    const monthHighlights = {
+      month: cur?.month || monthKeys[monthKeys.length - 1],
+      partsPurchaseTotal: cur?.partsPurchaseTotal ?? 0,
+      partsLines: cur?.partsLines ?? 0,
+      shopSalesTotal: cur?.shopSalesTotal ?? 0,
+      shopSalesCount: cur?.shopSalesCount ?? 0,
+    };
 
     const lastPurchaseMap = new Map(
       lastPurchaseBySup.map((x) => [String(x._id), x.lastPurchaseAt ? new Date(x.lastPurchaseAt).toISOString() : null])
@@ -172,6 +234,8 @@ export async function GET() {
       lowStockItems: lowStock.slice(0, 80),
       lowStockCount: lowStock.length,
       supplierSummary,
+      monthlyOverview,
+      monthHighlights,
       purchasesByDay: purchasesByDay.map((d) => ({
         day: d._id,
         lines: d.lines,

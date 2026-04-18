@@ -168,9 +168,30 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-8 text-xs text-white/40 sm:flex-row">
-          <p>© {new Date().getFullYear()} Chacha Mobile. All rights reserved.</p>
-          <p className="text-white/35">Crafted for premium retail & repair workflows.</p>
+        <div className="mt-14 space-y-6 border-t border-white/10 pt-8">
+          <div className="flex flex-col items-center justify-between gap-3 text-xs text-white/40 sm:flex-row">
+            <p>© {new Date().getFullYear()} Chacha Mobile. All rights reserved.</p>
+            <p className="text-center text-white/35 sm:text-right">
+              Crafted for premium retail & repair workflows.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-center sm:px-6">
+            <p className="text-[11px] leading-relaxed text-white/50">
+              Design &amp; development by{" "}
+              <a
+                href="https://devspheresolutions.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-brand transition hover:text-brand/90 hover:underline"
+              >
+                DevsSphere Solutions
+              </a>
+              <span className="mx-1.5 text-white/25" aria-hidden>
+                ·
+              </span>
+              Developer: <span className="font-medium text-white/70">Syed Ali Zaidi</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
