@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
 /**
- * One row per distinct inventory line (category + mobile + product + quality).
- * Stock = purchasedQty - returnedQty - soldQty (sold only when linked to Product and sale recorded).
+ * One row per distinct inventory line (sales category + folder + model + quality).
+ * mobileName = folder (brand/family); productName = model. Stock = purchased − returns − sold.
  */
 const InventoryStockGroupSchema = new mongoose.Schema(
   {
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    salesCategoryId: { type: mongoose.Schema.Types.ObjectId, ref: "SalesCategory", required: true },
     mobileName: { type: String, required: true, trim: true },
     productName: { type: String, required: true, trim: true },
     quality: { type: String, required: true, trim: true },
@@ -22,7 +22,7 @@ const InventoryStockGroupSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-InventoryStockGroupSchema.index({ categoryId: 1, mobileName: 1, productName: 1 });
+InventoryStockGroupSchema.index({ salesCategoryId: 1, mobileName: 1, productName: 1 });
 /** Unique only when linked to a shop product; many rows may omit the link (no duplicate-null errors). */
 InventoryStockGroupSchema.index(
   { linkedProductId: 1 },

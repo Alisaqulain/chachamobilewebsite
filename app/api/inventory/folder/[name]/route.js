@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import InventoryStockGroup from "@/models/InventoryStockGroup";
@@ -22,20 +21,29 @@ export async function GET(request, context) {
   try {
     const admin = await getAdminFromCookies();
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { id } = await context.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: "Invalid sales category" }, { status: 400 });
+    const params = await context.params;
+    const raw = params?.name != null ? String(params.name) : "";
+    const folderName = decodeURIComponent(raw).trim();
+    if (!folderName) {
+      return NextResponse.json({ error: "Folder name required" }, { status: 400 });
     }
     await connectDB();
-    const cat = await SalesCategory.findById(id).lean();
-    if (!cat) return NextResponse.json({ error: "Sales category not found" }, { status: 404 });
+    const esc = folderName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(`^${esc}$`, "i");
 
-    const groups = await InventoryStockGroup.find({ salesCategoryId: id })
-      .sort({ mobileName: 1, productName: 1, quality: 1 })
+    const groups = await InventoryStockGroup.find({ mobileName: rx })
+      .sort({ productName: 1, quality: 1 })
       .lean();
 
+    const scIds = [...new Set(groups.map((g) => String(g.salesCategoryId)).filter(Boolean))];
+    const cats =
+      scIds.length > 0
+        ? await SalesCategory.find({ _id: { $in: scIds } }).select("name slug").lean()
+        : [];
+    const cat = cats[0] || { _id: "", name: "Folder", slug: "folder" };
+
     const lastPurchase = await PartsPurchase.aggregate([
-      { $match: { salesCategoryId: new mongoose.Types.ObjectId(id) } },
+      { $match: { mobileName: rx } },
       {
         $group: {
           _id: {
@@ -68,7 +76,8 @@ export async function GET(request, context) {
     }));
 
     return NextResponse.json({
-      category: { _id: String(cat._id), name: cat.name, slug: cat.slug },
+      folder: { name: groups[0]?.mobileName || folderName },
+      salesCategory: { _id: String(cat._id || ""), name: cat.name, slug: cat.slug || "" },
       items,
     });
   } catch (e) {

@@ -37,7 +37,7 @@ export default function ProductForm({ productId, initial }) {
   useEffect(() => {
     (async () => {
       const [cRes, bRes, qRes] = await Promise.all([
-        fetch("/api/categories"),
+        fetch("/api/categories?scope=admin"),
         fetch("/api/brands"),
         fetch("/api/product-qualities"),
       ]);

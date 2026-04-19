@@ -96,7 +96,7 @@ export default function SalesSystemPartsReturnsPage() {
     const q = lineSearch.trim().toLowerCase();
     if (!q) return purchases;
     return purchases.filter((p) => {
-      const blob = [p.productName, p.mobileName, p.categoryName, p.quality].join(" ").toLowerCase();
+      const blob = [p.productName, p.mobileName, p.salesCategoryName, p.quality].join(" ").toLowerCase();
       return blob.includes(q);
     });
   }, [purchases, lineSearch]);
@@ -237,7 +237,7 @@ export default function SalesSystemPartsReturnsPage() {
               type="search"
               value={lineSearch}
               onChange={(e) => setLineSearch(e.target.value)}
-              placeholder="Product, mobile, category…"
+              placeholder="Model, folder, quality…"
               className="mt-1 w-full max-w-md min-h-12 rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
             />
           </div>
@@ -250,9 +250,9 @@ export default function SalesSystemPartsReturnsPage() {
                 <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
                   <tr>
                     <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Mobile</th>
-                    <th className="px-3 py-2">Product</th>
-                    <th className="px-3 py-2">Category</th>
+                    <th className="px-3 py-2">Folder</th>
+                    <th className="px-3 py-2">Model</th>
+                    <th className="px-3 py-2">Sales category</th>
                     <th className="px-3 py-2">Quality</th>
                     <th className="px-3 py-2">Bought</th>
                     <th className="px-3 py-2">Returned</th>
@@ -272,7 +272,7 @@ export default function SalesSystemPartsReturnsPage() {
                         </td>
                         <td className="px-3 py-2">{row.mobileName || "—"}</td>
                         <td className="px-3 py-2 font-semibold">{row.productName}</td>
-                        <td className="px-3 py-2">{row.categoryName || "—"}</td>
+                        <td className="px-3 py-2">{row.salesCategoryName || "—"}</td>
                         <td className="px-3 py-2">{row.quality}</td>
                         <td className="px-3 py-2 tabular-nums">{row.quantity}</td>
                         <td className="px-3 py-2 tabular-nums">{ret}</td>

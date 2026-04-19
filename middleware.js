@@ -64,6 +64,10 @@ function needsJwt(request) {
     return true;
   }
 
+  if (pathname.startsWith("/api/sales-categories")) {
+    return true;
+  }
+
   if (pathname.startsWith("/api/purchases")) {
     return true;
   }
@@ -143,6 +147,8 @@ export const config = {
     "/api/suppliers/:path*",
     "/api/inventory",
     "/api/inventory/:path*",
+    "/api/sales-categories",
+    "/api/sales-categories/:path*",
     "/api/purchases",
     "/api/purchases/:path*",
     "/api/sales",

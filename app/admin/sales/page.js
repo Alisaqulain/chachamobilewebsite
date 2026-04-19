@@ -82,7 +82,7 @@ export default function AdminSalesPage() {
   const loadMaster = useCallback(async () => {
     const [cRes, catRes, pRes, hRes, qRes] = await Promise.all([
       fetch("/api/customers"),
-      fetch("/api/categories"),
+      fetch("/api/categories?scope=admin"),
       fetch("/api/products"),
       fetch("/api/sales"),
       fetch("/api/product-qualities"),

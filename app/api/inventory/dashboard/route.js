@@ -3,10 +3,9 @@ import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import InventoryStockGroup from "@/models/InventoryStockGroup";
 import Supplier from "@/models/Supplier";
-import Category from "@/models/Category";
+import SalesCategory from "@/models/SalesCategory";
 import PartsPurchase from "@/models/PartsPurchase";
 import PartsPurchaseReturn from "@/models/PartsPurchaseReturn";
-import Sale from "@/models/Sale";
 import { netStock } from "@/lib/partsInventory";
 
 const LOW = 5;
@@ -50,11 +49,11 @@ export async function GET() {
       recentPurchaseLines,
       recentReturnLines,
       partsByMonth,
-      salesByMonth,
+      purchasedStockGroupIds,
     ] = await Promise.all([
       InventoryStockGroup.find().lean(),
       Supplier.countDocuments(),
-      Category.find().select("name").lean(),
+      SalesCategory.find().select("name").lean(),
       PartsPurchase.find().select("supplierId quantity _id").lean(),
       PartsPurchaseReturn.aggregate([
         { $group: { _id: "$partsPurchaseId", q: { $sum: "$quantity" } } },
@@ -80,7 +79,7 @@ export async function GET() {
       PartsPurchase.find()
         .sort({ date: -1, createdAt: -1 })
         .limit(20)
-        .select("supplierId date productName mobileName quality quantity lineTotal categoryId")
+        .select("supplierId date productName mobileName quality quantity lineTotal salesCategoryId")
         .lean(),
       PartsPurchaseReturn.find()
         .sort({ date: -1, createdAt: -1 })
@@ -99,38 +98,25 @@ export async function GET() {
         },
         { $sort: { _id: 1 } },
       ]),
-      Sale.aggregate([
-        { $match: { date: { $gte: twelveMonthsAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
-            amount: { $sum: "$totalAmount" },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]),
+      PartsPurchase.distinct("stockGroupId"),
     ]);
 
     const monthKeys = rollingMonthKeys(12);
     const pm = new Map(partsByMonth.map((x) => [x._id, x]));
-    const sm = new Map(salesByMonth.map((x) => [x._id, x]));
     const monthlyOverview = monthKeys.map((month) => ({
       month,
       partsPurchaseTotal: Number(pm.get(month)?.amount || 0),
       partsLines: Number(pm.get(month)?.lines || 0),
       partsUnits: Number(pm.get(month)?.units || 0),
-      shopSalesTotal: Number(sm.get(month)?.amount || 0),
-      shopSalesCount: Number(sm.get(month)?.count || 0),
     }));
     const cur = monthlyOverview[monthlyOverview.length - 1];
     const monthHighlights = {
       month: cur?.month || monthKeys[monthKeys.length - 1],
       partsPurchaseTotal: cur?.partsPurchaseTotal ?? 0,
       partsLines: cur?.partsLines ?? 0,
-      shopSalesTotal: cur?.shopSalesTotal ?? 0,
-      shopSalesCount: cur?.shopSalesCount ?? 0,
     };
+
+    const purchasedGroupSet = new Set((purchasedStockGroupIds || []).filter(Boolean).map((id) => String(id)));
 
     const lastPurchaseMap = new Map(
       lastPurchaseBySup.map((x) => [String(x._id), x.lastPurchaseAt ? new Date(x.lastPurchaseAt).toISOString() : null])
@@ -150,13 +136,14 @@ export async function GET() {
     let totalPartsStock = 0;
     const lowStock = [];
     for (const g of groups) {
+      if (!purchasedGroupSet.has(String(g._id))) continue;
       const n = netStock(g);
       totalPartsStock += Math.max(0, n);
       if (n < LOW && n >= 0) {
         lowStock.push({
           _id: String(g._id),
-          categoryId: String(g.categoryId),
-          categoryName: catMap.get(String(g.categoryId)) || "",
+          salesCategoryId: String(g.salesCategoryId),
+          salesCategoryName: catMap.get(String(g.salesCategoryId)) || "",
           mobileName: g.mobileName,
           productName: g.productName,
           quality: g.quality,
@@ -208,7 +195,7 @@ export async function GET() {
       quality: p.quality,
       quantity: Number(p.quantity || 0),
       lineTotal: Number(p.lineTotal || 0),
-      categoryName: catMap.get(String(p.categoryId)) || "",
+      salesCategoryName: catMap.get(String(p.salesCategoryId)) || "",
     }));
 
     const retPurchaseIds = [...new Set(recentReturnLines.map((r) => String(r.partsPurchaseId)))];

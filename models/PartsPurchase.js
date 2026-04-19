@@ -5,7 +5,7 @@ const PartsPurchaseSchema = new mongoose.Schema(
     supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
     stockGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "InventoryStockGroup", required: true },
     date: { type: Date, default: Date.now },
-    categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    salesCategoryId: { type: mongoose.Schema.Types.ObjectId, ref: "SalesCategory", required: true },
     mobileName: { type: String, required: true, trim: true },
     productName: { type: String, required: true, trim: true },
     quality: { type: String, required: true, trim: true },

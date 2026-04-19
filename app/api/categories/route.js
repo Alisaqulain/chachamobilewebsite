@@ -4,7 +4,9 @@ import Category from "@/models/Category";
 import Product from "@/models/Product";
 import { getAdminFromCookies } from "@/lib/auth";
 import { slugify } from "@/utils/slugify";
+import { filterCategoriesForPublicShop } from "@/lib/shopCategoryPublic";
 
+/** Website / shop catalogue defaults only (not parts ledger — see SalesCategory + /api/sales-categories). */
 const DEFAULT_SALES_CATEGORIES = [
   "Battery",
   "Folder",
@@ -42,8 +44,15 @@ export async function GET(request) {
     await ensureDefaultSalesCategories();
     const { searchParams } = new URL(request.url);
     const withCounts = searchParams.get("withCounts") === "1";
+    const scopeAdmin = searchParams.get("scope") === "admin";
+    const admin = await getAdminFromCookies();
+    const listAllShopCategories = scopeAdmin && admin;
 
     let categories = await Category.find().sort({ name: 1 }).lean();
+
+    if (!listAllShopCategories) {
+      categories = filterCategoriesForPublicShop(categories);
+    }
 
     if (withCounts) {
       const agg = await Product.aggregate([

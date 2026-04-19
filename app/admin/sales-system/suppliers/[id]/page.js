@@ -6,9 +6,9 @@ import { useCallback, useEffect, useState } from "react";
 
 const emptyPurchase = {
   date: new Date().toISOString().slice(0, 10),
-  categoryId: "",
-  mobileName: "",
-  productName: "",
+  salesCategoryId: "",
+  folderName: "",
+  modelNames: "",
   quality: "",
   quantity: "1",
   purchasePrice: "",
@@ -16,13 +16,18 @@ const emptyPurchase = {
   notes: "",
 };
 
+function pickDefaultSalesCategoryId(categories) {
+  if (!categories?.length) return "";
+  const folder = categories.find((c) => String(c.slug || "").toLowerCase() === "folder");
+  return folder?._id || categories[0]._id || "";
+}
+
 export default function SupplierPurchasesPage() {
   const params = useParams();
   const id = params?.id ? String(params.id) : "";
   const [supplier, setSupplier] = useState(null);
   const [purchases, setPurchases] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [qualities, setQualities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [form, setForm] = useState(emptyPurchase);
@@ -37,23 +42,25 @@ export default function SupplierPurchasesPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const [sRes, pRes, cRes, qRes] = await Promise.all([
+      const [sRes, pRes, cRes] = await Promise.all([
         fetch("/api/suppliers"),
         fetch(`/api/inventory/parts-purchases?supplierId=${encodeURIComponent(id)}`),
-        fetch("/api/categories"),
-        fetch("/api/product-qualities"),
+        fetch("/api/sales-categories"),
       ]);
       const sJson = await sRes.json();
       const pJson = await pRes.json();
       const cJson = await cRes.json();
-      const qJson = await qRes.json();
       if (!sRes.ok) throw new Error(sJson.error || "Failed suppliers");
       if (!pRes.ok) throw new Error(pJson.error || "Failed purchases");
       const sup = (sJson.suppliers || []).find((x) => x._id === id);
       setSupplier(sup || { name: "Supplier", _id: id });
       setPurchases(pJson.purchases || []);
-      if (cRes.ok) setCategories(cJson.categories || []);
-      if (qRes.ok) setQualities(qJson.qualities || []);
+      const cats = cRes.ok ? cJson.categories || [] : [];
+      setCategories(cats);
+      setForm((f) => ({
+        ...f,
+        salesCategoryId: f.salesCategoryId || pickDefaultSalesCategoryId(cats),
+      }));
     } catch (e) {
       setToast(e.message);
     } finally {
@@ -81,9 +88,9 @@ export default function SupplierPurchasesPage() {
         body: JSON.stringify({
           supplierId: id,
           date: form.date,
-          categoryId: form.categoryId,
-          mobileName: form.mobileName,
-          productName: form.productName,
+          salesCategoryId: form.salesCategoryId,
+          mobileName: form.folderName,
+          productName: form.modelNames,
           quality: form.quality,
           quantity: Number(form.quantity),
           purchasePrice: Number(form.purchasePrice),
@@ -93,7 +100,11 @@ export default function SupplierPurchasesPage() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Save failed");
-      setForm({ ...emptyPurchase, date: new Date().toISOString().slice(0, 10) });
+      setForm({
+        ...emptyPurchase,
+        date: new Date().toISOString().slice(0, 10),
+        salesCategoryId: pickDefaultSalesCategoryId(categories),
+      });
       setToast("Purchase saved · stock updated");
       await load();
     } catch (e) {
@@ -200,6 +211,12 @@ export default function SupplierPurchasesPage() {
       ) : null}
 
       <h2 className="mt-8 text-lg font-bold text-black">Add purchase</h2>
+      <p className="mt-1 text-xs text-black/50">
+        Choose a <strong>sales category</strong> (ledger only — not the website shop). <strong>Folder name</strong> on the line is the brand or family (e.g.
+        Oppo). <strong>Model / product</strong> is one label for this line (you can type e.g. &quot;A23, Reno 12&quot; as
+        text — it stays one row and <strong>quantity</strong> is the total pcs for this line only).{" "}
+        <strong>Quality</strong> is free text.
+      </p>
       <form
         onSubmit={onAddPurchase}
         className="mt-3 grid gap-3 rounded-xl border border-black/10 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3"
@@ -215,11 +232,11 @@ export default function SupplierPurchasesPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-black/45">Category</label>
+          <label className="text-xs font-bold text-black/45">Sales category</label>
           <select
             required
-            value={form.categoryId}
-            onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+            value={form.salesCategoryId}
+            onChange={(e) => setForm((f) => ({ ...f, salesCategoryId: e.target.value }))}
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           >
             <option value="">Select…</option>
@@ -232,37 +249,31 @@ export default function SupplierPurchasesPage() {
         </div>
         <div>
           <label className="text-xs font-bold text-black/45">Quality</label>
-          <select
+          <input
             required
             value={form.quality}
             onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value }))}
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
-          >
-            <option value="">Select…</option>
-            {qualities.map((q) => (
-              <option key={q._id} value={q.name}>
-                {q.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-bold text-black/45">Mobile name</label>
-          <input
-            required
-            value={form.mobileName}
-            onChange={(e) => setForm((f) => ({ ...f, mobileName: e.target.value }))}
-            placeholder="e.g. iPhone 12"
+            placeholder="e.g. Original, Local…"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-black/45">Product name</label>
+          <label className="text-xs font-bold text-black/45">Folder (brand / family)</label>
           <input
             required
-            value={form.productName}
-            onChange={(e) => setForm((f) => ({ ...f, productName: e.target.value }))}
-            placeholder="e.g. Back panel 303"
+            value={form.folderName}
+            onChange={(e) => setForm((f) => ({ ...f, folderName: e.target.value }))}
+            placeholder="e.g. Oppo"
+            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-bold text-black/45">Model / product label</label>
+          <input
+            required
+            value={form.modelNames}
+            onChange={(e) => setForm((f) => ({ ...f, modelNames: e.target.value }))}
+            placeholder="e.g. A23, Reno 12 (one line = one qty)"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -328,9 +339,9 @@ export default function SupplierPurchasesPage() {
             <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
               <tr>
                 <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Mobile</th>
-                <th className="px-3 py-2">Product</th>
-                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2">Folder</th>
+                <th className="px-3 py-2">Model</th>
+                <th className="px-3 py-2">Sales category</th>
                 <th className="px-3 py-2">Quality</th>
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Price</th>
@@ -344,7 +355,7 @@ export default function SupplierPurchasesPage() {
                   <td className="px-3 py-2 whitespace-nowrap">{row.date ? new Date(row.date).toLocaleDateString() : "—"}</td>
                   <td className="px-3 py-2">{row.mobileName}</td>
                   <td className="px-3 py-2 font-medium">{row.productName}</td>
-                  <td className="px-3 py-2">{row.categoryName}</td>
+                  <td className="px-3 py-2">{row.salesCategoryName || "—"}</td>
                   <td className="px-3 py-2">{row.quality}</td>
                   <td className="px-3 py-2">{row.quantity}</td>
                   <td className="px-3 py-2">₹{Number(row.purchasePrice).toLocaleString("en-IN")}</td>

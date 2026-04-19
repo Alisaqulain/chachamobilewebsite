@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import PartsPurchase from "@/models/PartsPurchase";
-import Category from "@/models/Category";
+import SalesCategory from "@/models/SalesCategory";
 import {
   applyPartsPurchaseDelete,
   applyPartsPurchaseLimitedUpdate,
@@ -21,15 +21,15 @@ export async function GET(request, context) {
     await connectDB();
     const p = await PartsPurchase.findById(id).lean();
     if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    const c = await Category.findById(p.categoryId).select("name").lean();
+    const sc = await SalesCategory.findById(p.salesCategoryId).select("name").lean();
     return NextResponse.json({
       purchase: {
         _id: String(p._id),
         supplierId: String(p.supplierId),
         stockGroupId: String(p.stockGroupId),
         date: p.date,
-        categoryId: String(p.categoryId),
-        categoryName: c?.name || "",
+        salesCategoryId: String(p.salesCategoryId),
+        salesCategoryName: sc?.name || "",
         mobileName: p.mobileName,
         productName: p.productName,
         quality: p.quality,

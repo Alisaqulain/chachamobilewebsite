@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 function newRow(qualityDefault) {
   return {
-    categoryId: "",
+    salesCategoryId: "",
     mobileName: "",
     productName: "",
     quality: qualityDefault || "",
@@ -15,7 +15,7 @@ function newRow(qualityDefault) {
 
 export default function AdminPurchasesPage() {
   const [suppliers, setSuppliers] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [salesCategories, setSalesCategories] = useState([]);
   const [qualities, setQualities] = useState([]);
   const [qualityDefault, setQualityDefault] = useState("");
   const [rows, setRows] = useState([newRow("")]);
@@ -29,7 +29,7 @@ export default function AdminPurchasesPage() {
   async function loadMaster() {
     const [sRes, cRes, qRes, hRes] = await Promise.all([
       fetch("/api/suppliers"),
-      fetch("/api/categories"),
+      fetch("/api/sales-categories"),
       fetch("/api/product-qualities"),
       fetch("/api/inventory/parts-purchases"),
     ]);
@@ -38,11 +38,11 @@ export default function AdminPurchasesPage() {
     const qJson = await qRes.json();
     const hJson = await hRes.json();
     if (!sRes.ok) throw new Error(sJson.error || "Failed suppliers");
-    if (!cRes.ok) throw new Error(cJson.error || "Failed categories");
+    if (!cRes.ok) throw new Error(cJson.error || "Failed sales categories");
     if (!qRes.ok) throw new Error(qJson.error || "Failed qualities");
     if (!hRes.ok) throw new Error(hJson.error || "Failed purchase history");
     setSuppliers(sJson.suppliers || []);
-    setCategories(cJson.categories || []);
+    setSalesCategories(cJson.categories || []);
     const quals = qJson.qualities || [];
     setQualities(quals);
     const def = quals[0]?.name || "";
@@ -89,7 +89,7 @@ export default function AdminPurchasesPage() {
       if (!date) throw new Error("Choose a date");
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
-        if (!r.categoryId) throw new Error(`Row ${i + 1}: select a category`);
+        if (!r.salesCategoryId) throw new Error(`Row ${i + 1}: select a sales category`);
         if (!String(r.productName || "").trim()) throw new Error(`Row ${i + 1}: enter product name`);
         if (!String(r.quality || "").trim()) throw new Error(`Row ${i + 1}: select quality`);
         if (!Number.isFinite(Number(r.quantity)) || Number(r.quantity) < 1) {
@@ -107,7 +107,7 @@ export default function AdminPurchasesPage() {
           body: JSON.stringify({
             supplierId,
             date,
-            categoryId: r.categoryId,
+            salesCategoryId: r.salesCategoryId,
             mobileName: String(r.mobileName || "").trim() || "—",
             productName: String(r.productName || "").trim(),
             quality: r.quality,
@@ -135,8 +135,8 @@ export default function AdminPurchasesPage() {
     <div>
       <h1 className="text-2xl font-extrabold tracking-tight text-black">Purchase Entry</h1>
       <p className="mt-1 text-sm text-black/60">
-        Buy from supplier, auto-calculate total, and increase stock. Category and quality from lists — type the product
-        name (no product dropdown).
+        Buy from supplier, auto-calculate total, and increase stock. Uses <strong>sales categories</strong> (ledger),
+        not shop categories — type the product name (no product dropdown).
       </p>
 
       {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
@@ -176,7 +176,7 @@ export default function AdminPurchasesPage() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs font-bold uppercase text-black/45">
               <tr>
-                <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2">Sales category</th>
                 <th className="px-3 py-2">Mobile (optional)</th>
                 <th className="px-3 py-2">Product</th>
                 <th className="px-3 py-2">Quality</th>
@@ -191,14 +191,14 @@ export default function AdminPurchasesPage() {
                 <tr key={i}>
                   <td className="px-3 py-2">
                     <select
-                      value={row.categoryId}
-                      onChange={(e) => updateRow(i, { categoryId: e.target.value })}
+                      value={row.salesCategoryId}
+                      onChange={(e) => updateRow(i, { salesCategoryId: e.target.value })}
                       className="min-w-[8rem] rounded-lg border border-black/15 px-2 py-2 text-sm outline-none focus:border-brand"
                     >
                       <option value="" disabled>
-                        Category
+                        Sales category
                       </option>
-                      {categories.map((c) => (
+                      {salesCategories.map((c) => (
                         <option key={c._id} value={c._id}>
                           {c.name}
                         </option>
@@ -300,7 +300,7 @@ export default function AdminPurchasesPage() {
             <tr>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Supplier</th>
-              <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">Sales category</th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Qty</th>
               <th className="px-4 py-3">Total</th>
@@ -311,7 +311,7 @@ export default function AdminPurchasesPage() {
               <tr key={h._id}>
                 <td className="px-4 py-3 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
                 <td className="px-4 py-3 font-medium text-black">{h.supplierName || "—"}</td>
-                <td className="px-4 py-3">{h.categoryName || "—"}</td>
+                <td className="px-4 py-3">{h.salesCategoryName || "—"}</td>
                 <td className="px-4 py-3">
                   {h.productName}
                   {h.mobileName && h.mobileName !== "—" ? (

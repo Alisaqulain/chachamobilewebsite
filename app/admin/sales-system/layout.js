@@ -6,8 +6,7 @@ import { useEffect, useState } from "react";
 
 const nav = [
   { href: "/admin/sales-system/dashboard", label: "Dashboard" },
-  { href: "/admin/sales-system/categories", label: "Categories" },
-  { href: "/admin/sales-system/qualities", label: "Qualities" },
+  { href: "/admin/sales-system/categories", label: "Sales categories" },
   { href: "/admin/sales-system/suppliers", label: "Suppliers" },
   { href: "/admin/sales-system/sales", label: "Sales Entry" },
   { href: "/admin/sales-system/returns", label: "Returns" },

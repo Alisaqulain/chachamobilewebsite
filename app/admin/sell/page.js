@@ -3,17 +3,9 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-const orders = [
-  { id: "#CM-2048", customer: "Rahul S.", total: "₹4,250", status: "Packed", time: "12m ago" },
-  { id: "#CM-2047", customer: "Neha Mobiles", total: "₹12,900", status: "WhatsApp", time: "1h ago" },
-  { id: "#CM-2046", customer: "A1 Repairs", total: "₹2,100", status: "Delivered", time: "Yesterday" },
-];
+const orders = [];
 
-const activity = [
-  "Stock alert: Galaxy A55 display below threshold (mock).",
-  "New draft order from WhatsApp webhook (mock).",
-  "Price list v3 published internally (mock).",
-];
+const activity = [];
 
 export default function SellAdminPage() {
   return (
@@ -43,9 +35,9 @@ export default function SellAdminPage() {
 
         <div className="mt-12 grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Today’s orders", value: "18", sub: "+4 vs avg" },
-            { label: "Pipeline value", value: "₹2.4L", sub: "Mock aggregate" },
-            { label: "Fulfilment SLA", value: "94%", sub: "On-time (demo)" },
+            { label: "Today’s orders", value: "0", sub: "No orders yet" },
+            { label: "Pipeline value", value: "—", sub: "Connect data source" },
+            { label: "Fulfilment SLA", value: "—", sub: "No baseline yet" },
           ].map((k, i) => (
             <motion.div
               key={k.label}
@@ -70,21 +62,25 @@ export default function SellAdminPage() {
           >
             <h2 className="text-sm font-semibold text-white">Recent orders</h2>
             <ul className="mt-4 divide-y divide-white/10">
-              {orders.map((o) => (
-                <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-4">
-                  <div>
-                    <p className="font-mono text-sm text-brand">{o.id}</p>
-                    <p className="text-sm text-white/70">{o.customer}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{o.total}</p>
-                    <p className="text-xs text-white/45">{o.time}</p>
-                  </div>
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
-                    {o.status}
-                  </span>
-                </li>
-              ))}
+              {orders.length === 0 ? (
+                <li className="py-10 text-center text-sm text-white/45">No orders yet.</li>
+              ) : (
+                orders.map((o) => (
+                  <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-4">
+                    <div>
+                      <p className="font-mono text-sm text-brand">{o.id}</p>
+                      <p className="text-sm text-white/70">{o.customer}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{o.total}</p>
+                      <p className="text-xs text-white/45">{o.time}</p>
+                    </div>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
+                      {o.status}
+                    </span>
+                  </li>
+                ))
+              )}
             </ul>
           </motion.div>
 
@@ -96,11 +92,17 @@ export default function SellAdminPage() {
           >
             <h2 className="text-sm font-semibold text-white">Activity</h2>
             <ul className="mt-4 space-y-3 text-sm text-white/55">
-              {activity.map((a) => (
-                <li key={a} className="rounded-2xl border border-white/5 bg-black/20 px-4 py-3">
-                  {a}
+              {activity.length === 0 ? (
+                <li className="rounded-2xl border border-white/5 bg-black/20 px-4 py-8 text-center text-white/45">
+                  No activity yet.
                 </li>
-              ))}
+              ) : (
+                activity.map((a) => (
+                  <li key={a} className="rounded-2xl border border-white/5 bg-black/20 px-4 py-3">
+                    {a}
+                  </li>
+                ))
+              )}
             </ul>
           </motion.div>
         </div>

@@ -4,23 +4,23 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-export default function InventoryCategoryDetailPage() {
+export default function InventoryFolderDetailPage() {
   const params = useParams();
-  const id = params?.id ? String(params.id) : "";
+  const name = params?.name ? String(params.name) : "";
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState("");
 
   const load = useCallback(async () => {
-    if (!id) return;
-    const res = await fetch(`/api/inventory/category/${id}`);
+    if (!name) return;
+    const res = await fetch(`/api/inventory/folder/${encodeURIComponent(name)}`);
     const j = await res.json();
     if (!res.ok) throw new Error(j.error || "Failed");
     setData(j);
-  }, [id]);
+  }, [name]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!name) return;
     (async () => {
       try {
         await load();
@@ -28,14 +28,14 @@ export default function InventoryCategoryDetailPage() {
         setError(e.message);
       }
     })();
-  }, [load, id]);
+  }, [load, name]);
 
   async function deleteStockLine(row) {
     if (!row.canDelete) {
       window.alert("This line has sold quantity. It cannot be deleted from here.");
       return;
     }
-    const label = `${row.mobileName} — ${row.productName} (${row.quality})`;
+    const label = `${row.productName} (${row.quality})`;
     if (!window.confirm(`Delete this stock line permanently?\n\n${label}\n\nThis removes all purchase and return history for this line.`)) {
       return;
     }
@@ -55,19 +55,18 @@ export default function InventoryCategoryDetailPage() {
   return (
     <div className="max-w-6xl">
       <Link href="/admin/sales-system/inventory" className="text-sm font-semibold text-brand-dim hover:underline">
-        ← Inventory
+        ← All folders
       </Link>
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
       {data ? (
         <>
-          <h1 className="mt-4 text-2xl font-bold text-black">{data.category?.name}</h1>
-          <p className="mt-1 text-xs text-black/50">Use Delete to remove a wrong line (not allowed if sold qty &gt; 0).</p>
+          <h1 className="mt-4 text-2xl font-bold text-black">{data.folder?.name}</h1>
+          <p className="mt-1 text-xs text-black/50">Models and qualities in this folder. Use Delete to remove a wrong line.</p>
           <div className="mt-6 overflow-x-auto rounded-xl border border-black/10 bg-white shadow-sm">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
                 <tr>
-                  <th className="px-3 py-2">Mobile</th>
-                  <th className="px-3 py-2">Product</th>
+                  <th className="px-3 py-2">Model</th>
                   <th className="px-3 py-2">Quality</th>
                   <th className="px-3 py-2">Stock</th>
                   <th className="px-3 py-2">Returned</th>
@@ -79,7 +78,6 @@ export default function InventoryCategoryDetailPage() {
               <tbody className="divide-y divide-black/5">
                 {(data.items || []).map((row) => (
                   <tr key={row.stockGroupId}>
-                    <td className="px-3 py-2">{row.mobileName}</td>
                     <td className="px-3 py-2 font-medium">{row.productName}</td>
                     <td className="px-3 py-2">{row.quality}</td>
                     <td className="px-3 py-2 font-bold">{row.totalStock}</td>
@@ -104,7 +102,7 @@ export default function InventoryCategoryDetailPage() {
               </tbody>
             </table>
             {(data.items || []).length === 0 ? (
-              <p className="p-8 text-center text-sm text-black/50">No stock lines in this category yet.</p>
+              <p className="p-8 text-center text-sm text-black/50">No stock lines in this folder yet.</p>
             ) : null}
           </div>
         </>

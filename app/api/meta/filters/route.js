@@ -5,6 +5,7 @@ import Brand from "@/models/Brand";
 import PhoneModel from "@/models/PhoneModel";
 import ProductQuality from "@/models/ProductQuality";
 import { ensureDefaultProductQualities } from "@/lib/productQualityHelpers";
+import { filterCategoriesForPublicShop } from "@/lib/shopCategoryPublic";
 
 export async function GET() {
   try {
@@ -17,8 +18,10 @@ export async function GET() {
       ProductQuality.find().sort({ sortOrder: 1, name: 1 }).lean(),
     ]);
 
+    const shopCategories = filterCategoriesForPublicShop(categories);
+
     return NextResponse.json({
-      categories: categories.map((c) => ({ ...c, _id: c._id.toString() })),
+      categories: shopCategories.map((c) => ({ ...c, _id: c._id.toString() })),
       brands: brands.map((b) => ({ ...b, _id: b._id.toString() })),
       qualities: qualities.map((q) => ({
         _id: q._id.toString(),

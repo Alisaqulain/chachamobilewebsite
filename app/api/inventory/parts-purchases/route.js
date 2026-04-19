@@ -4,7 +4,7 @@ import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import PartsPurchase from "@/models/PartsPurchase";
 import PartsPurchaseReturn from "@/models/PartsPurchaseReturn";
-import Category from "@/models/Category";
+import SalesCategory from "@/models/SalesCategory";
 import Supplier from "@/models/Supplier";
 import {
   ensureGroupForLine,
@@ -14,9 +14,10 @@ import {
 } from "@/lib/partsInventory";
 import { resolveProductQualityName } from "@/lib/productQualityHelpers";
 import { applyStockDeltas } from "@/lib/stock";
+import { ensureSalesLedgerFolderId } from "@/lib/salesCategoryHelpers";
 
-function serialize(p, catMap, supplierName, returnedQty = 0) {
-  const c = p.categoryId ? catMap.get(String(p.categoryId)) : null;
+function serialize(p, scMap, supplierName, returnedQty = 0) {
+  const sc = p.salesCategoryId ? scMap.get(String(p.salesCategoryId)) : null;
   const purchased = Number(p.quantity);
   const returned = Number(returnedQty || 0);
   return {
@@ -25,8 +26,8 @@ function serialize(p, catMap, supplierName, returnedQty = 0) {
     supplierName: supplierName || "",
     stockGroupId: String(p.stockGroupId),
     date: p.date,
-    categoryId: String(p.categoryId),
-    categoryName: c?.name || "",
+    salesCategoryId: String(p.salesCategoryId),
+    salesCategoryName: sc?.name || "",
     mobileName: p.mobileName,
     productName: p.productName,
     quality: p.quality,
@@ -71,21 +72,21 @@ export async function GET(request) {
         returnedMap.set(String(row._id), Number(row.totalReturned || 0));
       }
     }
-    const catIds = [...new Set(rows.map((r) => String(r.categoryId)))];
+    const scIds = [...new Set(rows.map((r) => String(r.salesCategoryId)))];
     const supIds = [...new Set(rows.map((r) => String(r.supplierId)))];
     const [cats, sups] = await Promise.all([
-      Category.find({ _id: { $in: catIds } })
+      SalesCategory.find({ _id: { $in: scIds } })
         .select("name")
         .lean(),
       Supplier.find({ _id: { $in: supIds } })
         .select("name")
         .lean(),
     ]);
-    const catMap = new Map(cats.map((c) => [String(c._id), c]));
+    const scMap = new Map(cats.map((c) => [String(c._id), c]));
     const supMap = new Map(sups.map((s) => [String(s._id), s.name]));
     return NextResponse.json({
       purchases: rows.map((r) =>
-        serialize(r, catMap, supMap.get(String(r.supplierId)) || "", returnedMap.get(String(r._id)) || 0)
+        serialize(r, scMap, supMap.get(String(r.supplierId)) || "", returnedMap.get(String(r._id)) || 0)
       ),
     });
   } catch (e) {
@@ -100,7 +101,7 @@ export async function POST(request) {
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await request.json();
     const supplierId = String(body?.supplierId || "");
-    const categoryId = String(body?.categoryId || "");
+    const salesCategoryIdRaw = String(body?.salesCategoryId || "").trim();
     const mobileName = String(body?.mobileName || "").trim();
     const productName = String(body?.productName || "").trim();
     const qualityRaw = body?.quality;
@@ -111,11 +112,23 @@ export async function POST(request) {
     const date = body?.date ? new Date(body.date) : new Date();
     const linkedProductId = toProductId(body?.linkedProductId);
 
-    if (!mongoose.Types.ObjectId.isValid(supplierId) || !mongoose.Types.ObjectId.isValid(categoryId)) {
-      return NextResponse.json({ error: "Invalid supplier or category" }, { status: 400 });
+    if (!mongoose.Types.ObjectId.isValid(supplierId)) {
+      return NextResponse.json({ error: "Invalid supplier" }, { status: 400 });
     }
     if (!mobileName || !productName) {
-      return NextResponse.json({ error: "Mobile name and product name required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Folder name and model / product label are required (one purchase line = one quantity)." },
+        { status: 400 }
+      );
+    }
+    await connectDB();
+    const salesCategoryId =
+      salesCategoryIdRaw && mongoose.Types.ObjectId.isValid(salesCategoryIdRaw)
+        ? salesCategoryIdRaw
+        : await ensureSalesLedgerFolderId();
+    const sc = await SalesCategory.findById(salesCategoryId).select("_id").lean();
+    if (!sc) {
+      return NextResponse.json({ error: "Invalid sales category" }, { status: 400 });
     }
     if (!Number.isFinite(quantity) || quantity < 1) {
       return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
@@ -124,16 +137,16 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid price" }, { status: 400 });
     }
 
-    await connectDB();
     const qRes = await resolveProductQualityName(qualityRaw);
     if (!qRes.ok) return NextResponse.json({ error: qRes.error }, { status: 400 });
 
     await assertProductExists(linkedProductId);
 
-    const lineTotal = quantity * purchasePrice + (Number.isFinite(gstAmount) ? gstAmount : 0);
+    const gst = Number.isFinite(gstAmount) ? Math.max(0, gstAmount) : 0;
+    const lineTotal = quantity * purchasePrice + gst;
 
     const group = await ensureGroupForLine({
-      categoryId,
+      salesCategoryId,
       mobileName,
       productName,
       quality: qRes.name,
@@ -145,13 +158,13 @@ export async function POST(request) {
       supplierId,
       stockGroupId: group._id,
       date,
-      categoryId,
+      salesCategoryId,
       mobileName,
       productName,
       quality: qRes.name,
       quantity,
       purchasePrice,
-      gstAmount: Number.isFinite(gstAmount) ? Math.max(0, gstAmount) : 0,
+      gstAmount: gst,
       notes,
       lineTotal,
       linkedProductId: linkedProductId || null,
@@ -170,7 +183,12 @@ export async function POST(request) {
       ]);
     }
 
-    return NextResponse.json({ ok: true, purchaseId: String(purchase._id) });
+    return NextResponse.json({
+      ok: true,
+      purchaseId: String(purchase._id),
+      purchaseIds: [String(purchase._id)],
+      linesCreated: 1,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: e?.message || "Failed to save" }, { status: 500 });

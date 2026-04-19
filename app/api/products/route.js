@@ -36,7 +36,7 @@ export async function GET(request) {
     }
 
     if (quality) {
-      filter.quality = quality;
+      filter.quality = new RegExp(escapeRegex(quality), "i");
     }
 
     if (modelId && mongoose.Types.ObjectId.isValid(modelId)) {
