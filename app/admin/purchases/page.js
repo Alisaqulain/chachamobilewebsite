@@ -23,6 +23,7 @@ export default function AdminPurchasesPage() {
   const [supplierId, setSupplierId] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [history, setHistory] = useState([]);
@@ -156,6 +157,26 @@ export default function AdminPurchasesPage() {
       setError(e2.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function removeHistoryEntry(row) {
+    if (!row?._id) return;
+    const ok = window.confirm("Delete this purchase entry? This will also update stock.");
+    if (!ok) return;
+    setDeletingId(row._id);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch(`/api/inventory/parts-purchases/${row._id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete purchase");
+      setNotice("Purchase entry removed.");
+      await loadMaster();
+    } catch (e2) {
+      setError(e2.message || "Failed to delete purchase");
+    } finally {
+      setDeletingId("");
     }
   }
 
@@ -344,6 +365,7 @@ export default function AdminPurchasesPage() {
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Qty</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/5">
@@ -360,6 +382,16 @@ export default function AdminPurchasesPage() {
                 </td>
                 <td className="px-4 py-3">{h.quantity}</td>
                 <td className="px-4 py-3 font-bold">₹{Number(h.lineTotal || 0).toLocaleString("en-IN")}</td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => removeHistoryEntry(h)}
+                    disabled={deletingId === h._id}
+                    className="text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    {deletingId === h._id ? "Removing…" : "Remove"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
