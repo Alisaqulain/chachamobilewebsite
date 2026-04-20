@@ -74,6 +74,12 @@ export default function AdminDashboardPage() {
                 Purchase: <span className="text-black">{data.purchaseCount || 0}</span>
               </p>
               <p className="mt-1 text-sm font-semibold text-black/80">
+                Purchase total:{" "}
+                <span className="text-black">
+                  ₹{Number(data.purchaseTotalAmount || 0).toLocaleString("en-IN")}
+                </span>
+              </p>
+              <p className="mt-1 text-sm font-semibold text-black/80">
                 Sales: <span className="text-black">{data.saleCount || 0}</span>
               </p>
               <p className="mt-1 text-sm font-semibold text-black/80">

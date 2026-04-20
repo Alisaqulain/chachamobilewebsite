@@ -24,6 +24,9 @@ export default function AdminPurchasesPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [editId, setEditId] = useState("");
+  const [editForm, setEditForm] = useState(null);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [history, setHistory] = useState([]);
@@ -93,6 +96,11 @@ export default function AdminPurchasesPage() {
         qty: String(h.quantity ?? ""),
         total: `₹${Number(h.lineTotal || 0).toLocaleString("en-IN")}`,
       })),
+    [history]
+  );
+
+  const historyGrandTotal = useMemo(
+    () => (history || []).reduce((sum, h) => sum + Number(h.lineTotal || 0), 0),
     [history]
   );
 
@@ -177,6 +185,54 @@ export default function AdminPurchasesPage() {
       setError(e2.message || "Failed to delete purchase");
     } finally {
       setDeletingId("");
+    }
+  }
+
+  function openEditEntry(row) {
+    setEditId(row?._id || "");
+    setEditForm({
+      date: row?.date ? String(row.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      quantity: String(Number(row?.quantity || 0)),
+      purchasePrice: String(Number(row?.purchasePrice || 0)),
+      gstAmount: String(Number(row?.gstAmount || 0)),
+      notes: String(row?.notes || ""),
+    });
+    setError("");
+    setNotice("");
+  }
+
+  function closeEditEntry() {
+    setEditId("");
+    setEditForm(null);
+  }
+
+  async function saveEditEntry(e) {
+    e.preventDefault();
+    if (!editId || !editForm) return;
+    setUpdating(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch(`/api/inventory/parts-purchases/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: editForm.date,
+          quantity: Number(editForm.quantity || 0),
+          purchasePrice: Number(editForm.purchasePrice || 0),
+          gstAmount: Number(editForm.gstAmount || 0),
+          notes: editForm.notes || "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update purchase");
+      setNotice("Purchase entry updated.");
+      closeEditEntry();
+      await loadMaster();
+    } catch (e2) {
+      setError(e2.message || "Failed to update purchase");
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -344,7 +400,12 @@ export default function AdminPurchasesPage() {
       </form>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-black">Purchase history</h2>
+        <div>
+          <h2 className="text-lg font-bold text-black">Purchase history</h2>
+          <p className="text-sm font-semibold text-black/70">
+            Purchase total: ₹{historyGrandTotal.toLocaleString("en-IN")}
+          </p>
+        </div>
         <DownloadExports
           filenameBase="purchases"
           title="Purchase history"
@@ -385,6 +446,13 @@ export default function AdminPurchasesPage() {
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"
+                    onClick={() => openEditEntry(h)}
+                    className="mr-3 text-xs font-bold text-brand-dim hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removeHistoryEntry(h)}
                     disabled={deletingId === h._id}
                     className="text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
@@ -398,6 +466,85 @@ export default function AdminPurchasesPage() {
         </table>
         {history.length === 0 ? <p className="p-8 text-center text-sm text-black/55">No purchases yet.</p> : null}
       </div>
+
+      {editId && editForm ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <form onSubmit={saveEditEntry} className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-bold text-black">Edit purchase entry</h3>
+            <p className="mt-1 text-xs text-black/55">
+              Update date, quantity, price, GST, or notes for this line.
+            </p>
+            <div className="mt-4 grid gap-3">
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={editForm.date}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, date: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Purchase price (unit)</label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={editForm.purchasePrice}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, purchasePrice: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">GST amount</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editForm.gstAmount}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, gstAmount: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Notes</label>
+                <input
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="submit"
+                disabled={updating}
+                className="min-h-11 flex-1 rounded-lg bg-black text-sm font-bold text-brand disabled:opacity-50"
+              >
+                {updating ? "Saving…" : "Save changes"}
+              </button>
+              <button
+                type="button"
+                onClick={closeEditEntry}
+                className="min-h-11 flex-1 rounded-lg border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

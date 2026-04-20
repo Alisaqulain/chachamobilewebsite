@@ -5,6 +5,7 @@ import Category from "@/models/Category";
 import Supplier from "@/models/Supplier";
 import Customer from "@/models/Customer";
 import Purchase from "@/models/Purchase";
+import PartsPurchase from "@/models/PartsPurchase";
 import Sale from "@/models/Sale";
 import ReturnEntry from "@/models/Return";
 import { getAdminFromCookies } from "@/lib/auth";
@@ -27,6 +28,7 @@ export async function GET() {
       supplierCount,
       customerCount,
       purchaseCount,
+      partsPurchaseTotalAgg,
       saleCount,
       returnCount,
       lowStockCount,
@@ -40,6 +42,7 @@ export async function GET() {
       Supplier.countDocuments(),
       Customer.countDocuments(),
       Purchase.countDocuments(),
+      PartsPurchase.aggregate([{ $group: { _id: null, total: { $sum: "$lineTotal" } } }]),
       Sale.countDocuments(),
       ReturnEntry.countDocuments(),
       Product.countDocuments({ stock: { $lt: 5 } }),
@@ -85,6 +88,7 @@ export async function GET() {
     const recentProducts = recentRaw.map(mapProduct);
 
     const totalStock = Number(stockAgg[0]?.totalStock ?? 0);
+    const purchaseTotalAmount = Number(partsPurchaseTotalAgg[0]?.total ?? 0);
     const todaySalesCount = Number(todaySalesAgg[0]?.count ?? 0);
     const todaySalesAmount = Number(todaySalesAgg[0]?.amount ?? 0);
 
@@ -112,6 +116,7 @@ export async function GET() {
       supplierCount,
       customerCount,
       purchaseCount,
+      purchaseTotalAmount,
       saleCount,
       returnCount,
       lowStockCount,

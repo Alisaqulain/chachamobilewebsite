@@ -108,6 +108,16 @@ export default function SupplierPurchasesPage() {
     [purchases]
   );
 
+  const supplierPurchaseTotal = useMemo(
+    () => (purchases || []).reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+    [purchases]
+  );
+
+  const supplierPurchaseUnits = useMemo(
+    () => (purchases || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+    [purchases]
+  );
+
   async function onAddPurchase(e) {
     e.preventDefault();
     setSaving(true);
@@ -366,7 +376,13 @@ export default function SupplierPurchasesPage() {
       ) : (
         <div className="mt-3">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
-            <p className="text-sm font-semibold text-black/70">Export these purchase lines</p>
+            <div>
+              <p className="text-sm font-semibold text-black/70">Export these purchase lines</p>
+              <p className="text-xs font-semibold text-black/60">
+                Supplier total: ₹{supplierPurchaseTotal.toLocaleString("en-IN")} · Units:{" "}
+                {supplierPurchaseUnits.toLocaleString("en-IN")}
+              </p>
+            </div>
             <DownloadExports
               filenameBase={`supplier_purchases_${supplier?.name || id}`}
               title="Supplier purchases"
