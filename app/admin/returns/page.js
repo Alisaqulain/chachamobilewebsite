@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import DownloadExports from "@/components/admin/DownloadExports";
 
 function newRow() {
   return { productId: "", qty: 1 };
@@ -60,6 +61,27 @@ export default function AdminReturnsPage() {
   }, [type, saleCustomerType]);
 
   const totalQty = useMemo(() => rows.reduce((s, r) => s + Number(r.qty || 0), 0), [rows]);
+
+  const exportColumns = useMemo(
+    () => [
+      { header: "Date", key: "date", width: 12 },
+      { header: "Type", key: "type", width: 14 },
+      { header: "Party", key: "party", width: 18 },
+      { header: "Items", key: "items", width: 8 },
+    ],
+    []
+  );
+
+  const exportRows = useMemo(
+    () =>
+      (history || []).map((h) => ({
+        date: h.date ? new Date(h.date).toLocaleDateString() : "—",
+        type: h.type === "purchase_return" ? "Purchase Return" : "Sales Return",
+        party: h.partyLabel || "—",
+        items: String((h.products || []).length),
+      })),
+    [history]
+  );
 
   function updateRow(i, key, value) {
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)));
@@ -299,7 +321,19 @@ export default function AdminReturnsPage() {
         </div>
       </form>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-black">Returns history</h2>
+        <DownloadExports
+          filenameBase="returns"
+          title="Returns history"
+          subtitle="Admin exports"
+          metaLines={[`Rows: ${exportRows.length}`]}
+          columns={exportColumns}
+          rows={exportRows}
+        />
+      </div>
+
+      <div className="mt-3 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
             <tr>

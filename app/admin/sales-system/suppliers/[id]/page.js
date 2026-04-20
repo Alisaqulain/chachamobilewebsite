@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import DownloadExports from "@/components/admin/DownloadExports";
 
 const emptyPurchase = {
   date: new Date().toISOString().slice(0, 10),
@@ -77,6 +78,35 @@ export default function SupplierPurchasesPage() {
     const t = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const exportColumns = useMemo(
+    () => [
+      { header: "Date", key: "date", width: 12 },
+      { header: "Folder", key: "folder", width: 16 },
+      { header: "Model", key: "model", width: 26 },
+      { header: "Sales category", key: "salesCategory", width: 18 },
+      { header: "Quality", key: "quality", width: 12 },
+      { header: "Qty", key: "qty", width: 8 },
+      { header: "Price", key: "price", width: 12 },
+      { header: "Total", key: "total", width: 12 },
+    ],
+    []
+  );
+
+  const exportRows = useMemo(
+    () =>
+      (purchases || []).map((row) => ({
+        date: row.date ? new Date(row.date).toLocaleDateString() : "—",
+        folder: row.mobileName || "—",
+        model: row.productName || "—",
+        salesCategory: row.salesCategoryName || "—",
+        quality: row.quality || "—",
+        qty: String(row.quantity ?? ""),
+        price: `₹${Number(row.purchasePrice || 0).toLocaleString("en-IN")}`,
+        total: `₹${Number(row.lineTotal || 0).toLocaleString("en-IN")}`,
+      })),
+    [purchases]
+  );
 
   async function onAddPurchase(e) {
     e.preventDefault();
@@ -334,7 +364,20 @@ export default function SupplierPurchasesPage() {
       {loading ? (
         <p className="mt-4 text-sm text-black/55">Loading…</p>
       ) : (
-        <div className="mt-3 overflow-x-auto rounded-xl border border-black/10 bg-white shadow-sm">
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+            <p className="text-sm font-semibold text-black/70">Export these purchase lines</p>
+            <DownloadExports
+              filenameBase={`supplier_purchases_${supplier?.name || id}`}
+              title="Supplier purchases"
+              subtitle={supplier?.name || "Supplier"}
+              metaLines={[`Rows: ${exportRows.length}`]}
+              columns={exportColumns}
+              rows={exportRows}
+            />
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-black/10 bg-white shadow-sm">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
               <tr>
@@ -376,6 +419,7 @@ export default function SupplierPurchasesPage() {
             </tbody>
           </table>
           {purchases.length === 0 ? <p className="p-6 text-center text-sm text-black/50">No purchases yet.</p> : null}
+          </div>
         </div>
       )}
 

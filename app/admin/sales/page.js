@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import DownloadExports from "@/components/admin/DownloadExports";
 
 /** Uncategorized — only products with no category on file. */
 const SALES_CAT_OTHER = "__other_category__";
@@ -111,6 +112,27 @@ export default function AdminSalesPage() {
   const grandTotal = useMemo(
     () => rows.reduce((sum, r) => sum + Number(r.quantity || 0) * Number(r.price || 0), 0),
     [rows]
+  );
+
+  const exportColumns = useMemo(
+    () => [
+      { header: "Date", key: "date", width: 12 },
+      { header: "Customer", key: "customer", width: 18 },
+      { header: "Items", key: "items", width: 8 },
+      { header: "Total", key: "total", width: 12 },
+    ],
+    []
+  );
+
+  const exportRows = useMemo(
+    () =>
+      (history || []).map((h) => ({
+        date: h.date ? new Date(h.date).toLocaleDateString() : "—",
+        customer: h.customerLabel || "—",
+        items: String((h.products || []).length),
+        total: `₹${Number(h.totalAmount || 0).toLocaleString("en-IN")}`,
+      })),
+    [history]
   );
 
   function updateRow(i, patch) {
@@ -449,7 +471,19 @@ export default function AdminSalesPage() {
         </div>
       </form>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-black">Sales history</h2>
+        <DownloadExports
+          filenameBase="sales"
+          title="Sales history"
+          subtitle="Admin exports"
+          metaLines={[`Rows: ${exportRows.length}`]}
+          columns={exportColumns}
+          rows={exportRows}
+        />
+      </div>
+
+      <div className="mt-3 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
             <tr>

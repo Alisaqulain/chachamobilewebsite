@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import DownloadExports from "@/components/admin/DownloadExports";
 
 function supplierLabel(name) {
   const n = String(name || "").trim();
@@ -100,6 +101,39 @@ export default function SalesSystemPartsReturnsPage() {
       return blob.includes(q);
     });
   }, [purchases, lineSearch]);
+
+  const exportColumns = useMemo(
+    () => [
+      { header: "Date", key: "date", width: 12 },
+      { header: "Folder", key: "folder", width: 16 },
+      { header: "Model", key: "model", width: 26 },
+      { header: "Sales category", key: "salesCategory", width: 18 },
+      { header: "Quality", key: "quality", width: 12 },
+      { header: "Bought", key: "bought", width: 8 },
+      { header: "Returned", key: "returned", width: 8 },
+      { header: "Returnable", key: "returnable", width: 10 },
+    ],
+    []
+  );
+
+  const exportRows = useMemo(
+    () =>
+      (filteredLines || []).map((row) => {
+        const ret = Number(row.returnedQty ?? 0);
+        const can = Math.max(0, Number(row.returnableQty ?? row.quantity - ret));
+        return {
+          date: row.date ? new Date(row.date).toLocaleDateString() : "—",
+          folder: row.mobileName || "—",
+          model: row.productName || "—",
+          salesCategory: row.salesCategoryName || "—",
+          quality: row.quality || "—",
+          bought: String(row.quantity ?? ""),
+          returned: String(ret),
+          returnable: String(can),
+        };
+      }),
+    [filteredLines]
+  );
 
   function clearSupplier() {
     setSelectedSupplier(null);
@@ -245,8 +279,23 @@ export default function SalesSystemPartsReturnsPage() {
           {purchasesLoading ? (
             <p className="mt-8 text-sm text-black/55">Loading purchase lines…</p>
           ) : (
-            <div className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
-              <table className="min-w-full text-left text-sm">
+            <div className="mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+                <p className="text-sm font-semibold text-black/70">
+                  Export current list {lineSearch.trim() ? "(filtered)" : ""}
+                </p>
+                <DownloadExports
+                  filenameBase={`purchase_returns_${selectedSupplier?.name || selectedSupplier?._id || "supplier"}`}
+                  title="Purchase returns (parts)"
+                  subtitle={supplierLabel(selectedSupplier?.name)}
+                  metaLines={[`Rows: ${exportRows.length}`, lineSearch.trim() ? `Filter: ${lineSearch.trim()}` : ""]}
+                  columns={exportColumns}
+                  rows={exportRows}
+                />
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
+                <table className="min-w-full text-left text-sm">
                 <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
                   <tr>
                     <th className="px-3 py-2">Date</th>
@@ -299,6 +348,7 @@ export default function SalesSystemPartsReturnsPage() {
                     : "No lines match this search."}
                 </p>
               ) : null}
+              </div>
             </div>
           )}
         </section>

@@ -20,7 +20,18 @@ export async function POST(request) {
       );
     }
 
-    await connectDB();
+    try {
+      await connectDB();
+    } catch (dbErr) {
+      const msg = dbErr?.message || "";
+      if (msg.includes("MONGODB_URI")) {
+        return NextResponse.json(
+          { error: "Server misconfigured: set MONGODB_URI in .env.local" },
+          { status: 503 }
+        );
+      }
+      throw dbErr;
+    }
 
     let admin = await Admin.findOne({ email: DEFAULT_ADMIN_EMAIL });
     if (!admin) {
@@ -70,6 +81,28 @@ export async function POST(request) {
     return res;
   } catch (e) {
     console.error(e);
+    const msg = e?.message || "";
+    if (msg.includes("MONGODB_URI")) {
+      return NextResponse.json(
+        { error: "Server misconfigured: set MONGODB_URI in .env.local" },
+        { status: 503 }
+      );
+    }
+    if (e?.code === "ECONNREFUSED" || e?.code === "ENOTFOUND" || msg.includes("querySrv")) {
+      return NextResponse.json(
+        {
+          error:
+            "Database connection failed. Check MONGODB_URI and network/DNS access to MongoDB (Atlas SRV records).",
+        },
+        { status: 503 }
+      );
+    }
+    if (msg.includes("JWT_SECRET")) {
+      return NextResponse.json(
+        { error: "Server misconfigured: set JWT_SECRET (32+ characters) in .env.local" },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
