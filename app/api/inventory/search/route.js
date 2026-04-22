@@ -10,7 +10,7 @@ function tokens(s) {
   return String(s || "")
     .trim()
     .toLowerCase()
-    .split(/\s+/)
+    .split(/[\s,]+/)
     .filter(Boolean);
 }
 

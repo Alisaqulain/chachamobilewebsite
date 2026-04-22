@@ -57,6 +57,11 @@ export default function SalesSystemDashboardPage() {
   const [stockHint, setStockHint] = useState(
     "Search supplier purchase lines only. Type a keyword, or filter by sales category / quality (substring)."
   );
+  const [modelSearch, setModelSearch] = useState("");
+  const modelSearchDebounced = useDebounced(modelSearch, 320);
+  const [modelResults, setModelResults] = useState([]);
+  const [modelLoading, setModelLoading] = useState(false);
+  const [modelHint, setModelHint] = useState("Search model/folder names to see matching purchase entries.");
 
   const load = useCallback(async () => {
     setError("");
@@ -119,6 +124,33 @@ export default function SalesSystemDashboardPage() {
   useEffect(() => {
     void runStockLookup();
   }, [runStockLookup]);
+
+  const runModelLookup = useCallback(async () => {
+    const q = modelSearchDebounced.trim();
+    if (q.length < 1) {
+      setModelResults([]);
+      setModelHint("Search model/folder names to see matching purchase entries.");
+      return;
+    }
+    setModelHint("");
+    setModelLoading(true);
+    try {
+      const params = new URLSearchParams({ q });
+      const res = await fetch(`/api/inventory/parts-purchases?${params.toString()}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Model search failed");
+      setModelResults(Array.isArray(json.purchases) ? json.purchases : []);
+    } catch (e) {
+      setModelResults([]);
+      setModelHint(e.message || "Search failed");
+    } finally {
+      setModelLoading(false);
+    }
+  }, [modelSearchDebounced]);
+
+  useEffect(() => {
+    void runModelLookup();
+  }, [runModelLookup]);
 
   const mh = invStats?.monthHighlights;
   const monthly = invStats?.monthlyOverview ?? [];
@@ -285,6 +317,76 @@ export default function SalesSystemDashboardPage() {
                 ))}
               </ul>
             )}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-black">Model search</h2>
+            <p className="text-xs text-black/55">
+              Example: search <strong>oppo</strong> to show all entries related to oppo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setModelSearch("");
+              setModelResults([]);
+              setModelHint("Search model/folder names to see matching purchase entries.");
+            }}
+            className="text-xs font-semibold text-brand-dim hover:underline"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="mt-3 max-w-md">
+          <label className="text-xs font-bold uppercase text-black/45">Search model / folder</label>
+          <input
+            type="search"
+            value={modelSearch}
+            onChange={(e) => setModelSearch(e.target.value)}
+            placeholder="e.g. oppo, realme, reno 12"
+            className="mt-1 w-full min-h-12 rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            autoComplete="off"
+          />
+        </div>
+        {modelHint ? <p className="mt-3 text-sm text-black/50">{modelHint}</p> : null}
+        {modelLoading ? <p className="mt-3 text-sm text-black/50">Searching…</p> : null}
+        {!modelLoading && !modelHint ? (
+          <div className="mt-4 overflow-x-auto rounded-xl border border-black/10">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-zinc-50 text-xs font-bold uppercase text-black/45">
+                <tr>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Supplier</th>
+                  <th className="px-3 py-2">Folder</th>
+                  <th className="px-3 py-2">Model / product</th>
+                  <th className="px-3 py-2">Quality</th>
+                  <th className="px-3 py-2">Qty</th>
+                  <th className="px-3 py-2">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5">
+                {modelResults.map((row) => (
+                  <tr key={row._id}>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatPurchaseDate(row.date)}</td>
+                    <td className="px-3 py-2">{row.supplierName || "—"}</td>
+                    <td className="px-3 py-2">{row.mobileName || "—"}</td>
+                    <td className="px-3 py-2 font-medium">{row.productName || "—"}</td>
+                    <td className="px-3 py-2">{row.quality || "—"}</td>
+                    <td className="px-3 py-2 tabular-nums">{Number(row.quantity || 0)}</td>
+                    <td className="px-3 py-2 font-semibold">
+                      ₹{Number(row.lineTotal || 0).toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {modelResults.length === 0 ? (
+              <p className="p-6 text-center text-sm text-black/50">No matching entries.</p>
+            ) : null}
           </div>
         ) : null}
       </section>

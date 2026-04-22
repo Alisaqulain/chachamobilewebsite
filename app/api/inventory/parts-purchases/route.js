@@ -16,6 +16,28 @@ import { resolveProductQualityName } from "@/lib/productQualityHelpers";
 import { applyStockDeltas } from "@/lib/stock";
 import { ensureSalesLedgerFolderId } from "@/lib/salesCategoryHelpers";
 
+function searchTokens(s) {
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter(Boolean);
+}
+
+function normalizeAliasText(s) {
+  const seen = new Set();
+  const out = [];
+  for (const part of String(s || "").split(",")) {
+    const value = part.trim().replace(/\s+/g, " ");
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out.join(", ");
+}
+
 function serialize(p, scMap, supplierName, returnedQty = 0) {
   const sc = p.salesCategoryId ? scMap.get(String(p.salesCategoryId)) : null;
   const purchased = Number(p.quantity);
@@ -49,6 +71,8 @@ export async function GET(request) {
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get("supplierId")?.trim();
+    const q = searchParams.get("q")?.trim() || "";
+    const qToks = searchTokens(q);
     const filter = {};
     if (supplierId) {
       if (!mongoose.Types.ObjectId.isValid(supplierId)) {
@@ -57,10 +81,25 @@ export async function GET(request) {
       filter.supplierId = supplierId;
     }
     await connectDB();
-    const rows = await PartsPurchase.find(filter)
+    let rows = await PartsPurchase.find(filter)
       .sort({ date: -1, createdAt: -1 })
       .limit(supplierId ? 500 : 500)
       .lean();
+    if (qToks.length > 0) {
+      rows = rows.filter((r) => {
+        const hay = [
+          r.mobileName,
+          r.productName,
+          r.quality,
+          r.notes,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .replace(/[,\-_/]+/g, " ")
+          .replace(/\s+/g, " ");
+        return qToks.every((t) => hay.includes(t));
+      });
+    }
     const purchaseIds = rows.map((r) => r._id);
     const returnedMap = new Map();
     if (purchaseIds.length) {
@@ -102,8 +141,8 @@ export async function POST(request) {
     const body = await request.json();
     const supplierId = String(body?.supplierId || "");
     const salesCategoryIdRaw = String(body?.salesCategoryId || "").trim();
-    const mobileName = String(body?.mobileName || "").trim();
-    const productName = String(body?.productName || "").trim();
+    const mobileName = normalizeAliasText(body?.mobileName || "");
+    const productName = normalizeAliasText(body?.productName || "");
     const qualityRaw = body?.quality;
     const quantity = Number(body?.quantity);
     const purchasePrice = Number(body?.purchasePrice ?? 0);
