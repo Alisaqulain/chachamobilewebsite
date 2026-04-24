@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import connectDB from "@/lib/mongodb";
 import Admin from "@/models/Admin";
 import { signAdminToken } from "@/lib/jwt";
+import { adminTokenCookieBaseOptions } from "@/lib/adminSessionCookie";
 
 const DEFAULT_ADMIN_EMAIL = "yusuf@admin.com";
 const DEFAULT_ADMIN_PASSWORD = "yusuf@110";
@@ -72,10 +73,7 @@ export async function POST(request) {
 
     const res = NextResponse.json({ ok: true, email: admin.email });
     res.cookies.set("admin_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
+      ...adminTokenCookieBaseOptions(request),
       maxAge: 60 * 60 * 24 * 7,
     });
     return res;

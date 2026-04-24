@@ -57,7 +57,7 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full`}
     >
-      <body className="app-site-shell min-h-full flex flex-col antialiased">
+      <body className="app-site-shell flex min-h-dvh flex-col antialiased">
         <CartProvider>
           <Navbar />
           <MainShell>{children}</MainShell>

@@ -43,7 +43,7 @@ export default function HomePage() {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden bg-transparent">
+    <div className="flex flex-1 flex-col overflow-x-hidden bg-transparent">
       <HeroSlider />
 
       <HomeStatsRibbon />

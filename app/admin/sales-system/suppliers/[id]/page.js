@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DownloadExports from "@/components/admin/DownloadExports";
 
 const emptyPurchase = {
@@ -22,6 +22,21 @@ function pickDefaultSalesCategoryId(categories) {
   if (!categories?.length) return "";
   const folder = categories.find((c) => String(c.slug || "").toLowerCase() === "folder");
   return folder?._id || categories[0]._id || "";
+}
+
+/** Turn OCR output into comma-separated model labels (admin can edit after). */
+function normalizeOcrForModels(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  let t = raw
+    .replace(/\r\n/g, "\n")
+    .replace(/[·•]/g, ", ")
+    .replace(/[\n\t;|/]+/g, ", ")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s+/g, " ")
+    .replace(/,\s*,+/g, ", ")
+    .trim();
+  t = t.replace(/^,\s*|\s*,$/g, "").trim();
+  return t;
 }
 
 export default function SupplierPurchasesPage() {
@@ -45,6 +60,46 @@ export default function SupplierPurchasesPage() {
     address: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const modelCameraInputRef = useRef(null);
+  const modelGalleryInputRef = useRef(null);
+  const [modelOcrBusy, setModelOcrBusy] = useState(false);
+
+  const onModelPhotoOcr = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!String(file.type || "").startsWith("image/")) {
+      setToast("Choose an image file");
+      return;
+    }
+    setModelOcrBusy(true);
+    setToast("");
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      try {
+        const {
+          data: { text },
+        } = await worker.recognize(file);
+        const cleaned = normalizeOcrForModels(text);
+        if (!cleaned) {
+          setToast("No text found in photo — try a clearer shot or type manually");
+          return;
+        }
+        setForm((f) => ({
+          ...f,
+          modelNames: f.modelNames.trim() ? `${f.modelNames.trim()}, ${cleaned}` : cleaned,
+        }));
+        setToast("Text from photo added — correct it if needed, then save");
+      } finally {
+        await worker.terminate();
+      }
+    } catch (err) {
+      setToast(err?.message || "Could not read text from image");
+    } finally {
+      setModelOcrBusy(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -362,8 +417,9 @@ export default function SupplierPurchasesPage() {
       <p className="mt-1 text-xs text-black/50">
         Choose a <strong>ledger category</strong> (not the website shop) — e.g. Battery, Display, or Folder.{" "}
         <strong>Branch / brand</strong> is the supplier grouping for this line (e.g. Oppo, Samsung).{" "}
-        <strong>Model / product</strong> is one label for this line (you can type e.g. &quot;A23, Reno 12&quot; as
-        text — it stays one row and <strong>quantity</strong> is the total pcs for this line only).{" "}
+        <strong>Model / product</strong> is one label for this line (type e.g. &quot;A23, Reno 12&quot;, or use{" "}
+        <strong>Take photo</strong> / <strong>Upload</strong> to fill from a label photo — fix mistakes before saving).{" "}
+        It stays one row and <strong>quantity</strong> is the total pcs for this line only.{" "}
         <strong>Quality</strong> is free text.
       </p>
       <form
@@ -418,13 +474,51 @@ export default function SupplierPurchasesPage() {
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-black/45">Model / product label</label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              required
+              value={form.modelNames}
+              onChange={(e) => setForm((f) => ({ ...f, modelNames: e.target.value }))}
+              placeholder="e.g. A23, Reno 12 (one line = one qty)"
+              className="min-h-12 w-full flex-1 rounded-lg border border-black/15 px-3 text-sm"
+            />
+            <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:justify-stretch">
+              <button
+                type="button"
+                disabled={modelOcrBusy || saving}
+                onClick={() => modelCameraInputRef.current?.click()}
+                className="min-h-12 rounded-lg border border-black/20 bg-zinc-50 px-3 text-xs font-bold text-black disabled:opacity-50 sm:min-w-[7.5rem]"
+              >
+                {modelOcrBusy ? "Reading…" : "Take photo"}
+              </button>
+              <button
+                type="button"
+                disabled={modelOcrBusy || saving}
+                onClick={() => modelGalleryInputRef.current?.click()}
+                className="min-h-12 rounded-lg border border-black/20 bg-white px-3 text-xs font-bold text-black disabled:opacity-50 sm:min-w-[7.5rem]"
+              >
+                {modelOcrBusy ? "Reading…" : "Upload image"}
+              </button>
+            </div>
+          </div>
           <input
-            required
-            value={form.modelNames}
-            onChange={(e) => setForm((f) => ({ ...f, modelNames: e.target.value }))}
-            placeholder="e.g. A23, Reno 12 (one line = one qty)"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            ref={modelCameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={onModelPhotoOcr}
           />
+          <input
+            ref={modelGalleryInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onModelPhotoOcr}
+          />
+          <p className="mt-1 text-[11px] text-black/45">
+            OCR runs in the browser (English). Good lighting and a straight photo help; you can always edit the field.
+          </p>
         </div>
         <div>
           <label className="text-xs font-bold text-black/45">Quantity</label>

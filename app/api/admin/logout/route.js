@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
+import { adminTokenCookieBaseOptions } from "@/lib/adminSessionCookie";
 
-export async function POST() {
+export async function POST(request) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set("admin_token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
+    ...adminTokenCookieBaseOptions(request),
     maxAge: 0,
   });
   return res;

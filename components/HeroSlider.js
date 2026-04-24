@@ -54,7 +54,7 @@ export default function HeroSlider() {
 
   return (
     <section className="relative w-full overflow-hidden bg-black">
-      <div className="relative min-h-[min(92svh,860px)] w-full">
+      <div className="relative min-h-[min(92vh,860px)] w-full md:min-h-[min(92dvh,860px)]">
         {/* Full bleed from viewport top; MainShell uses pt-0 on / so video sits under fixed navbar */}
         <div className="absolute inset-0 z-0">
           <video
@@ -96,7 +96,7 @@ export default function HeroSlider() {
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto flex min-h-[min(92svh,860px)] max-w-7xl flex-col items-center px-4 pb-14 pt-[calc(4.5rem+env(safe-area-inset-top,0px)+2.25rem)] text-center sm:px-8 sm:pb-12 sm:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+4rem)] lg:px-12 lg:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+5rem)]">
+        <div className="relative z-10 mx-auto flex min-h-[min(92vh,860px)] max-w-7xl flex-col items-center px-4 pb-14 pt-[calc(4.5rem+env(safe-area-inset-top,0px)+2.25rem)] text-center sm:px-8 sm:pb-12 sm:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+4rem)] md:min-h-[min(92dvh,860px)] lg:px-12 lg:pt-[calc(4.5rem+env(safe-area-inset-top,0px)+5rem)]">
           <div className="flex w-full max-w-3xl flex-1 flex-col justify-center">
             <AnimatePresence mode="wait">
               <motion.div
