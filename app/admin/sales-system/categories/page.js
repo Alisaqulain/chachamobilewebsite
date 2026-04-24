@@ -58,7 +58,7 @@ export default function SalesSystemCategoriesPage() {
       if (!res.ok) throw new Error(j.error || "Save failed");
       setName("");
       setSlug("");
-      setToast("Sales category added");
+      setToast("Ledger category added");
       await load();
     } catch (e) {
       setError(e.message || "Failed");
@@ -68,7 +68,7 @@ export default function SalesSystemCategoriesPage() {
   }
 
   async function onDelete(row) {
-    if (!confirm(`Delete sales category “${row.name}”?`)) return;
+    if (!confirm(`Delete ledger category “${row.name}”?`)) return;
     setError("");
     try {
       const res = await fetch(`/api/sales-categories/${row._id}`, { method: "DELETE" });
@@ -83,10 +83,10 @@ export default function SalesSystemCategoriesPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-bold text-black">Sales categories</h1>
+      <h1 className="text-2xl font-bold text-black">Ledger categories</h1>
       <p className="mt-2 text-sm text-black/60">
-        Only for <strong>parts purchases and stock</strong>. Add whatever labels you need here — they show on the
-        supplier purchase form. This is not the shop catalogue.
+        Internal labels for <strong>supplier purchases, sales entry, and stock</strong> only (e.g. Battery, Display,
+        Folder). The public website shop does not use this list — keep shop and ledger separate.
       </p>
 
       {error ? (
@@ -97,7 +97,7 @@ export default function SalesSystemCategoriesPage() {
       ) : null}
 
       <form onSubmit={onAdd} className="mt-8 rounded-xl border border-black/10 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-bold text-black">Add sales category</h2>
+        <h2 className="text-sm font-bold text-black">Add ledger category</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="text-xs font-bold uppercase text-black/45">Name</label>
@@ -127,7 +127,7 @@ export default function SalesSystemCategoriesPage() {
         </button>
       </form>
 
-      <h2 className="mt-10 text-sm font-bold text-black">Your sales categories</h2>
+      <h2 className="mt-10 text-sm font-bold text-black">Your ledger categories</h2>
       {loading ? (
         <p className="mt-4 text-sm text-black/55">Loading…</p>
       ) : (

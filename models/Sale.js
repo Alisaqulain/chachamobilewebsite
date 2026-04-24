@@ -2,9 +2,13 @@ import mongoose from "mongoose";
 
 const SaleItemSchema = new mongoose.Schema(
   {
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    /** Website catalogue SKU (optional if selling from parts ledger line). */
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
+    /** Parts ledger stock group from supplier purchases (optional if productId set). */
+    stockGroupId: { type: mongoose.Schema.Types.ObjectId, ref: "InventoryStockGroup", default: null },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true, min: 0 },
+    gstAmount: { type: Number, default: 0, min: 0 },
   },
   { _id: false }
 );
@@ -24,4 +28,7 @@ const SaleSchema = new mongoose.Schema(
 
 SaleSchema.index({ date: -1 });
 
-export default mongoose.models.Sale || mongoose.model("Sale", SaleSchema);
+if (mongoose.models.Sale) delete mongoose.models.Sale;
+if (mongoose.connection.models.Sale) delete mongoose.connection.models.Sale;
+
+export default mongoose.model("Sale", SaleSchema);

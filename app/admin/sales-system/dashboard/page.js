@@ -55,7 +55,7 @@ export default function SalesSystemDashboardPage() {
   const [partsStockResults, setPartsStockResults] = useState([]);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockHint, setStockHint] = useState(
-    "Search supplier purchase lines only. Type a keyword, or filter by sales category / quality (substring)."
+    "Search matches folder, model, quality, and each line’s signature name (set on the supplier purchase form)."
   );
   const [modelSearch, setModelSearch] = useState("");
   const modelSearchDebounced = useDebounced(modelSearch, 320);
@@ -97,7 +97,7 @@ export default function SalesSystemDashboardPage() {
     if (q.length < 1 && !hasFilter) {
       setPartsStockResults([]);
       setStockHint(
-        "Search supplier purchase lines only. Type a keyword, or filter by sales category / quality (substring)."
+        "Search matches folder, model, quality, and each line’s signature name (set on the supplier purchase form)."
       );
       return;
     }
@@ -201,7 +201,7 @@ export default function SalesSystemDashboardPage() {
               setStockQuality("");
               setPartsStockResults([]);
               setStockHint(
-                "Search supplier purchase lines only. Type a keyword, or filter by sales category / quality (substring)."
+                "Search matches folder, model, quality, and each line’s signature name (set on the supplier purchase form)."
               );
             }}
             className="text-xs font-semibold text-brand-dim hover:underline"
@@ -222,13 +222,13 @@ export default function SalesSystemDashboardPage() {
             />
           </div>
           <div className="w-full sm:w-48">
-            <label className="text-xs font-bold uppercase text-black/45">Sales category</label>
+            <label className="text-xs font-bold uppercase text-black/45">Ledger category</label>
             <select
               value={stockSalesCategoryId}
               onChange={(e) => setStockSalesCategoryId(e.target.value)}
               className="mt-1 w-full min-h-12 rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
             >
-              <option value="">All sales categories</option>
+              <option value="">All ledger categories</option>
               {categories.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name}
@@ -361,6 +361,7 @@ export default function SalesSystemDashboardPage() {
                 <tr>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Supplier</th>
+                  <th className="px-3 py-2">Signature name</th>
                   <th className="px-3 py-2">Folder</th>
                   <th className="px-3 py-2">Model / product</th>
                   <th className="px-3 py-2">Quality</th>
@@ -373,6 +374,7 @@ export default function SalesSystemDashboardPage() {
                   <tr key={row._id}>
                     <td className="px-3 py-2 whitespace-nowrap">{formatPurchaseDate(row.date)}</td>
                     <td className="px-3 py-2">{row.supplierName || "—"}</td>
+                    <td className="px-3 py-2">{row.signatureName?.trim() ? row.signatureName : "—"}</td>
                     <td className="px-3 py-2">{row.mobileName || "—"}</td>
                     <td className="px-3 py-2 font-medium">{row.productName || "—"}</td>
                     <td className="px-3 py-2">{row.quality || "—"}</td>
@@ -489,7 +491,7 @@ export default function SalesSystemDashboardPage() {
                 <tr>
                   <th className="px-3 py-2">Folder</th>
                   <th className="px-3 py-2">Model</th>
-                  <th className="px-3 py-2">Sales category</th>
+                  <th className="px-3 py-2">Ledger category</th>
                   <th className="px-3 py-2">Quality</th>
                   <th className="px-3 py-2">Net</th>
                 </tr>

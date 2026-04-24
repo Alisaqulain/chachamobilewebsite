@@ -79,7 +79,7 @@ export async function GET() {
       PartsPurchase.find()
         .sort({ date: -1, createdAt: -1 })
         .limit(20)
-        .select("supplierId date productName mobileName quality quantity lineTotal salesCategoryId")
+        .select("supplierId date productName mobileName quality quantity lineTotal salesCategoryId signatureName")
         .lean(),
       PartsPurchaseReturn.find()
         .sort({ date: -1, createdAt: -1 })
@@ -196,6 +196,7 @@ export async function GET() {
       quantity: Number(p.quantity || 0),
       lineTotal: Number(p.lineTotal || 0),
       salesCategoryName: catMap.get(String(p.salesCategoryId)) || "",
+      signatureName: p.signatureName || "",
     }));
 
     const retPurchaseIds = [...new Set(recentReturnLines.map((r) => String(r.partsPurchaseId)))];

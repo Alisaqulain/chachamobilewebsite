@@ -107,7 +107,7 @@ export default function SalesSystemPartsReturnsPage() {
       { header: "Date", key: "date", width: 12 },
       { header: "Folder", key: "folder", width: 16 },
       { header: "Model", key: "model", width: 26 },
-      { header: "Sales category", key: "salesCategory", width: 18 },
+      { header: "Ledger category", key: "salesCategory", width: 18 },
       { header: "Quality", key: "quality", width: 12 },
       { header: "Bought", key: "bought", width: 8 },
       { header: "Returned", key: "returned", width: 8 },
@@ -301,7 +301,7 @@ export default function SalesSystemPartsReturnsPage() {
                     <th className="px-3 py-2">Date</th>
                     <th className="px-3 py-2">Folder</th>
                     <th className="px-3 py-2">Model</th>
-                    <th className="px-3 py-2">Sales category</th>
+                    <th className="px-3 py-2">Ledger category</th>
                     <th className="px-3 py-2">Quality</th>
                     <th className="px-3 py-2">Bought</th>
                     <th className="px-3 py-2">Returned</th>

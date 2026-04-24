@@ -58,6 +58,7 @@ function serialize(p, scMap, supplierName, returnedQty = 0) {
     returnableQty: Math.max(0, purchased - returned),
     purchasePrice: Number(p.purchasePrice),
     gstAmount: Number(p.gstAmount ?? 0),
+    signatureName: p.signatureName || "",
     notes: p.notes || "",
     lineTotal: Number(p.lineTotal),
     linkedProductId: p.linkedProductId ? String(p.linkedProductId) : "",
@@ -91,6 +92,7 @@ export async function GET(request) {
           r.mobileName,
           r.productName,
           r.quality,
+          r.signatureName,
           r.notes,
         ]
           .join(" ")
@@ -148,6 +150,7 @@ export async function POST(request) {
     const purchasePrice = Number(body?.purchasePrice ?? 0);
     const gstAmount = Number(body?.gstAmount ?? 0);
     const notes = String(body?.notes ?? "").trim();
+    const signatureName = String(body?.signatureName ?? "").trim();
     const date = body?.date ? new Date(body.date) : new Date();
     const linkedProductId = toProductId(body?.linkedProductId);
 
@@ -204,6 +207,7 @@ export async function POST(request) {
       quantity,
       purchasePrice,
       gstAmount: gst,
+      signatureName,
       notes,
       lineTotal,
       linkedProductId: linkedProductId || null,

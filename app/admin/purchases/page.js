@@ -11,6 +11,7 @@ function newRow(qualityDefault) {
     quality: qualityDefault || "",
     quantity: 1,
     price: 0,
+    signatureName: "",
   };
 }
 
@@ -78,6 +79,7 @@ export default function AdminPurchasesPage() {
       { header: "Supplier", key: "supplier", width: 18 },
       { header: "Sales category", key: "salesCategory", width: 18 },
       { header: "Product", key: "product", width: 26 },
+      { header: "Signature name", key: "signature", width: 16 },
       { header: "Qty", key: "qty", width: 8 },
       { header: "Total", key: "total", width: 12 },
     ],
@@ -93,6 +95,7 @@ export default function AdminPurchasesPage() {
         product:
           h.productName +
           (h.mobileName && h.mobileName !== "—" ? ` · ${h.mobileName}` : ""),
+        signature: h.signatureName?.trim() ? h.signatureName : "—",
         qty: String(h.quantity ?? ""),
         total: `₹${Number(h.lineTotal || 0).toLocaleString("en-IN")}`,
       })),
@@ -152,6 +155,7 @@ export default function AdminPurchasesPage() {
             purchasePrice: Number(r.price || 0),
             gstAmount: 0,
             notes: "",
+            signatureName: String(r.signatureName || "").trim(),
           }),
         });
         const data = await res.json();
@@ -196,6 +200,7 @@ export default function AdminPurchasesPage() {
       purchasePrice: String(Number(row?.purchasePrice || 0)),
       gstAmount: String(Number(row?.gstAmount || 0)),
       notes: String(row?.notes || ""),
+      signatureName: String(row?.signatureName || ""),
     });
     setError("");
     setNotice("");
@@ -222,6 +227,7 @@ export default function AdminPurchasesPage() {
           purchasePrice: Number(editForm.purchasePrice || 0),
           gstAmount: Number(editForm.gstAmount || 0),
           notes: editForm.notes || "",
+          signatureName: String(editForm.signatureName || "").trim(),
         }),
       });
       const data = await res.json();
@@ -287,6 +293,7 @@ export default function AdminPurchasesPage() {
                 <th className="px-3 py-2">Quality</th>
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Price</th>
+                <th className="px-3 py-2">Signature name</th>
                 <th className="px-3 py-2">Row total</th>
                 <th className="px-3 py-2 text-right">Action</th>
               </tr>
@@ -362,6 +369,15 @@ export default function AdminPurchasesPage() {
                       className="w-28 rounded-lg border border-black/15 px-2 py-2 text-sm outline-none focus:border-brand"
                     />
                   </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={row.signatureName}
+                      onChange={(e) => updateRow(i, { signatureName: e.target.value })}
+                      placeholder="Optional"
+                      className="w-28 min-w-[6rem] rounded-lg border border-black/15 px-2 py-2 text-sm outline-none focus:border-brand"
+                    />
+                  </td>
                   <td className="px-3 py-2 font-semibold">
                     ₹{(Number(row.quantity || 0) * Number(row.price || 0)).toLocaleString("en-IN")}
                   </td>
@@ -424,6 +440,7 @@ export default function AdminPurchasesPage() {
               <th className="px-4 py-3">Supplier</th>
               <th className="px-4 py-3">Sales category</th>
               <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Keyword</th>
               <th className="px-4 py-3">Qty</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3 text-right">Action</th>
@@ -441,6 +458,7 @@ export default function AdminPurchasesPage() {
                     <span className="text-black/45"> · {h.mobileName}</span>
                   ) : null}
                 </td>
+                <td className="px-4 py-3 text-black/75">{h.signatureName?.trim() ? h.signatureName : "—"}</td>
                 <td className="px-4 py-3">{h.quantity}</td>
                 <td className="px-4 py-3 font-bold">₹{Number(h.lineTotal || 0).toLocaleString("en-IN")}</td>
                 <td className="px-4 py-3 text-right">
@@ -472,7 +490,7 @@ export default function AdminPurchasesPage() {
           <form onSubmit={saveEditEntry} className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
             <h3 className="text-lg font-bold text-black">Edit purchase entry</h3>
             <p className="mt-1 text-xs text-black/55">
-              Update date, quantity, price, GST, or notes for this line.
+              Update date, quantity, price, GST, notes, or signature name for this line.
             </p>
             <div className="mt-4 grid gap-3">
               <div>
@@ -522,6 +540,15 @@ export default function AdminPurchasesPage() {
                 <input
                   value={editForm.notes}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Signature name (this line)</label>
+                <input
+                  value={editForm.signatureName}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, signatureName: e.target.value }))}
+                  placeholder="Optional"
                   className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
                 />
               </div>

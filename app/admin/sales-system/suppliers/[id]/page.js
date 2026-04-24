@@ -14,6 +14,7 @@ const emptyPurchase = {
   quantity: "1",
   purchasePrice: "",
   gstAmount: "0",
+  signatureName: "",
   notes: "",
 };
 
@@ -38,6 +39,12 @@ export default function SupplierPurchasesPage() {
   const [returnFor, setReturnFor] = useState(null);
   const [returnQty, setReturnQty] = useState("1");
   const [returnDate, setReturnDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [supplierDraft, setSupplierDraft] = useState({
+    name: "",
+    phone: "",
+    address: "",
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -74,6 +81,16 @@ export default function SupplierPurchasesPage() {
   }, [load]);
 
   useEffect(() => {
+    if (supplier) {
+      setSupplierDraft({
+        name: supplier.name || "",
+        phone: supplier.phone || "",
+        address: supplier.address || "",
+      });
+    }
+  }, [supplier?._id, supplier?.name, supplier?.phone, supplier?.address]);
+
+  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(t);
@@ -82,10 +99,11 @@ export default function SupplierPurchasesPage() {
   const exportColumns = useMemo(
     () => [
       { header: "Date", key: "date", width: 12 },
-      { header: "Folder", key: "folder", width: 16 },
+      { header: "Branch", key: "folder", width: 16 },
       { header: "Model", key: "model", width: 26 },
-      { header: "Sales category", key: "salesCategory", width: 18 },
+      { header: "Ledger category", key: "salesCategory", width: 18 },
       { header: "Quality", key: "quality", width: 12 },
+      { header: "Signature name", key: "signatureName", width: 18 },
       { header: "Qty", key: "qty", width: 8 },
       { header: "Price", key: "price", width: 12 },
       { header: "Total", key: "total", width: 12 },
@@ -101,6 +119,7 @@ export default function SupplierPurchasesPage() {
         model: row.productName || "—",
         salesCategory: row.salesCategoryName || "—",
         quality: row.quality || "—",
+        signatureName: row.signatureName?.trim() ? row.signatureName : "—",
         qty: String(row.quantity ?? ""),
         price: `₹${Number(row.purchasePrice || 0).toLocaleString("en-IN")}`,
         total: `₹${Number(row.lineTotal || 0).toLocaleString("en-IN")}`,
@@ -117,6 +136,43 @@ export default function SupplierPurchasesPage() {
     () => (purchases || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0),
     [purchases]
   );
+
+  async function saveSupplierDetails(e) {
+    e.preventDefault();
+    const name = String(supplierDraft.name || "").trim();
+    if (!name) {
+      setToast("Supplier name is required");
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await fetch(`/api/suppliers/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          phone: String(supplierDraft.phone || "").trim(),
+          address: String(supplierDraft.address || "").trim(),
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Save failed");
+      const sup = j.supplier;
+      if (sup) {
+        setSupplier((s) => ({
+          ...s,
+          name: sup.name,
+          phone: sup.phone ?? "",
+          address: sup.address ?? "",
+        }));
+      }
+      setToast("Supplier details saved");
+    } catch (e) {
+      setToast(e.message);
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   async function onAddPurchase(e) {
     e.preventDefault();
@@ -135,6 +191,7 @@ export default function SupplierPurchasesPage() {
           quantity: Number(form.quantity),
           purchasePrice: Number(form.purchasePrice),
           gstAmount: Number(form.gstAmount || 0),
+          signatureName: String(form.signatureName || "").trim(),
           notes: form.notes,
         }),
       });
@@ -168,6 +225,7 @@ export default function SupplierPurchasesPage() {
           gstAmount: Number(editForm.gstAmount || 0),
           notes: editForm.notes,
           date: editForm.date,
+          signatureName: String(editForm.signatureName || "").trim(),
         }),
       });
       const j = await res.json();
@@ -229,6 +287,7 @@ export default function SupplierPurchasesPage() {
       gstAmount: String(row.gstAmount ?? 0),
       notes: row.notes || "",
       date: row.date ? String(row.date).slice(0, 10) : "",
+      signatureName: row.signatureName || "",
     });
   }
 
@@ -246,14 +305,64 @@ export default function SupplierPurchasesPage() {
         </div>
       </div>
 
+      <form
+        onSubmit={saveSupplierDetails}
+        className="mt-6 rounded-xl border border-black/10 bg-white p-4 shadow-sm"
+      >
+        <h2 className="text-sm font-bold text-black">Supplier details</h2>
+        <p className="mt-1 text-xs text-black/50">
+          Name, phone, and address only. Set <strong>Signature name</strong> on each purchase line so Overview stock search
+          can find it (e.g. &quot;a23&quot; when the model label lists many names).
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-black/45">Supplier name</label>
+            <input
+              required
+              value={supplierDraft.name}
+              onChange={(e) => setSupplierDraft((d) => ({ ...d, name: e.target.value }))}
+              disabled={supplier?.name === "Unknown Supplier"}
+              title={supplier?.name === "Unknown Supplier" ? "System default name cannot be changed" : undefined}
+              className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm disabled:bg-zinc-100 disabled:text-black/50"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-black/45">Phone</label>
+            <input
+              value={supplierDraft.phone}
+              onChange={(e) => setSupplierDraft((d) => ({ ...d, phone: e.target.value }))}
+              className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+              autoComplete="off"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs font-bold text-black/45">Address</label>
+            <input
+              value={supplierDraft.address}
+              onChange={(e) => setSupplierDraft((d) => ({ ...d, address: e.target.value }))}
+              className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={savingProfile}
+          className="mt-4 min-h-12 rounded-lg bg-black px-6 text-sm font-bold text-brand disabled:opacity-50"
+        >
+          {savingProfile ? "Saving…" : "Save supplier details"}
+        </button>
+      </form>
+
       {toast ? (
         <p className="mt-4 rounded-lg border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-black">{toast}</p>
       ) : null}
 
       <h2 className="mt-8 text-lg font-bold text-black">Add purchase</h2>
       <p className="mt-1 text-xs text-black/50">
-        Choose a <strong>sales category</strong> (ledger only — not the website shop). <strong>Folder name</strong> on the line is the brand or family (e.g.
-        Oppo). <strong>Model / product</strong> is one label for this line (you can type e.g. &quot;A23, Reno 12&quot; as
+        Choose a <strong>ledger category</strong> (not the website shop) — e.g. Battery, Display, or Folder.{" "}
+        <strong>Branch / brand</strong> is the supplier grouping for this line (e.g. Oppo, Samsung).{" "}
+        <strong>Model / product</strong> is one label for this line (you can type e.g. &quot;A23, Reno 12&quot; as
         text — it stays one row and <strong>quantity</strong> is the total pcs for this line only).{" "}
         <strong>Quality</strong> is free text.
       </p>
@@ -272,7 +381,7 @@ export default function SupplierPurchasesPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-black/45">Sales category</label>
+          <label className="text-xs font-bold text-black/45">Ledger category</label>
           <select
             required
             value={form.salesCategoryId}
@@ -298,12 +407,12 @@ export default function SupplierPurchasesPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold text-black/45">Folder (brand / family)</label>
+          <label className="text-xs font-bold text-black/45">Branch / brand name</label>
           <input
             required
             value={form.folderName}
             onChange={(e) => setForm((f) => ({ ...f, folderName: e.target.value }))}
-            placeholder="e.g. Oppo"
+            placeholder="e.g. Oppo, Samsung (not the category above)"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -349,6 +458,16 @@ export default function SupplierPurchasesPage() {
             value={form.gstAmount}
             onChange={(e) => setForm((f) => ({ ...f, gstAmount: e.target.value }))}
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-bold text-black/45">Signature name (this line)</label>
+          <input
+            value={form.signatureName}
+            onChange={(e) => setForm((f) => ({ ...f, signatureName: e.target.value }))}
+            placeholder='e.g. a23 — shows this row when admin searches "a23" on dashboard'
+            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            autoComplete="off"
           />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
@@ -398,10 +517,11 @@ export default function SupplierPurchasesPage() {
             <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
               <tr>
                 <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Folder</th>
+                <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Model</th>
-                <th className="px-3 py-2">Sales category</th>
+                <th className="px-3 py-2">Ledger category</th>
                 <th className="px-3 py-2">Quality</th>
+                <th className="px-3 py-2">Signature name</th>
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Price</th>
                 <th className="px-3 py-2">Total</th>
@@ -416,6 +536,7 @@ export default function SupplierPurchasesPage() {
                   <td className="px-3 py-2 font-medium">{row.productName}</td>
                   <td className="px-3 py-2">{row.salesCategoryName || "—"}</td>
                   <td className="px-3 py-2">{row.quality}</td>
+                  <td className="px-3 py-2 text-black/80">{row.signatureName?.trim() ? row.signatureName : "—"}</td>
                   <td className="px-3 py-2">{row.quantity}</td>
                   <td className="px-3 py-2">₹{Number(row.purchasePrice).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2 font-semibold">₹{Number(row.lineTotal).toLocaleString("en-IN")}</td>
@@ -445,42 +566,69 @@ export default function SupplierPurchasesPage() {
             onSubmit={onSaveEdit}
             className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
           >
-            <h3 className="text-lg font-bold">Edit purchase</h3>
-            <p className="text-xs text-black/50">Quantity, price, GST, notes, and date only.</p>
+            <h3 className="text-lg font-bold">Edit purchase line</h3>
+            <p className="text-xs text-black/50">
+              Includes <strong>signature name</strong> — the main term to find this line on the sales dashboard (e.g. a23).
+            </p>
             <div className="mt-4 grid gap-3">
-              <input
-                type="date"
-                required
-                value={editForm.date}
-                onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
-                className="min-h-12 rounded-lg border px-3 text-sm"
-              />
-              <input
-                type="number"
-                min={1}
-                value={editForm.quantity}
-                onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="min-h-12 rounded-lg border px-3 text-sm"
-              />
-              <input
-                type="number"
-                min={0}
-                value={editForm.purchasePrice}
-                onChange={(e) => setEditForm((f) => ({ ...f, purchasePrice: e.target.value }))}
-                className="min-h-12 rounded-lg border px-3 text-sm"
-              />
-              <input
-                type="number"
-                min={0}
-                value={editForm.gstAmount}
-                onChange={(e) => setEditForm((f) => ({ ...f, gstAmount: e.target.value }))}
-                className="min-h-12 rounded-lg border px-3 text-sm"
-              />
-              <input
-                value={editForm.notes}
-                onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
-                className="min-h-12 rounded-lg border px-3 text-sm"
-              />
+              <div>
+                <label className="text-xs font-bold text-black/45">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={editForm.date}
+                  onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={editForm.quantity}
+                  onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Purchase price (unit)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editForm.purchasePrice}
+                  onChange={(e) => setEditForm((f) => ({ ...f, purchasePrice: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">GST amount</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editForm.gstAmount}
+                  onChange={(e) => setEditForm((f) => ({ ...f, gstAmount: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Notes</label>
+                <input
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Signature name (this line)</label>
+                <input
+                  value={editForm.signatureName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, signatureName: e.target.value }))}
+                  placeholder="e.g. a23"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  autoComplete="off"
+                />
+              </div>
             </div>
             <div className="mt-4 flex gap-2">
               <button type="submit" className="min-h-11 flex-1 rounded-lg bg-black text-sm font-bold text-brand">

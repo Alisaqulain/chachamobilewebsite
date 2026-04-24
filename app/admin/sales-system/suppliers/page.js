@@ -11,6 +11,8 @@ export default function SalesSystemSuppliersPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -49,6 +51,47 @@ export default function SalesSystemSuppliersPage() {
       if (!res.ok) throw new Error(j.error || "Save failed");
       setForm(empty);
       setToast("Supplier saved");
+      await load();
+    } catch (e) {
+      setToast(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openEdit(s) {
+    setEditing(s);
+    setEditForm({
+      name: s.name || "",
+      phone: s.phone || "",
+      address: s.address || "",
+    });
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!editing || !editForm) return;
+    const name = String(editForm.name || "").trim();
+    if (!name) {
+      setToast("Name is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/suppliers/${editing._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          phone: String(editForm.phone || "").trim(),
+          address: String(editForm.address || "").trim(),
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Save failed");
+      setEditing(null);
+      setEditForm(null);
+      setToast("Supplier updated");
       await load();
     } catch (e) {
       setToast(e.message);
@@ -141,6 +184,13 @@ export default function SalesSystemSuppliersPage() {
                   <td className="px-4 py-3 text-black/70">{s.phone || "—"}</td>
                   <td className="px-4 py-3 text-black/70">{s.address || "—"}</td>
                   <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(s)}
+                      className="mr-2 text-xs font-bold text-brand-dim hover:underline"
+                    >
+                      Edit
+                    </button>
                     <Link
                       href={`/admin/sales-system/suppliers/${s._id}`}
                       className="mr-3 inline-block min-h-10 rounded-lg bg-brand px-4 py-2 text-xs font-bold text-black"
@@ -159,6 +209,65 @@ export default function SalesSystemSuppliersPage() {
           </table>
         </div>
       )}
+
+      {editing && editForm ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <form
+            onSubmit={saveEdit}
+            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
+          >
+            <h3 className="text-lg font-bold text-black">Edit supplier</h3>
+            <p className="text-xs text-black/50">Name, phone, and address.</p>
+            <div className="mt-4 grid gap-3">
+              <div>
+                <label className="text-xs font-bold text-black/45">Supplier name</label>
+                <input
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  disabled={editing.name === "Unknown Supplier"}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm disabled:bg-zinc-100"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Phone</label>
+                <input
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Address</label>
+                <input
+                  value={editForm.address}
+                  onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="min-h-11 flex-1 rounded-lg bg-black text-sm font-bold text-brand disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(null);
+                  setEditForm(null);
+                }}
+                className="min-h-11 flex-1 rounded-lg border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

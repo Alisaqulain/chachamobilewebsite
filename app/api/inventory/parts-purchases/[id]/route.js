@@ -36,6 +36,7 @@ export async function GET(request, context) {
         quantity: Number(p.quantity),
         purchasePrice: Number(p.purchasePrice),
         gstAmount: Number(p.gstAmount ?? 0),
+        signatureName: p.signatureName || "",
         notes: p.notes || "",
         lineTotal: Number(p.lineTotal),
         linkedProductId: p.linkedProductId ? String(p.linkedProductId) : "",
@@ -64,6 +65,8 @@ export async function PUT(request, context) {
     const purchasePrice = Number(body?.purchasePrice ?? prev.purchasePrice);
     const gstAmount = Number(body?.gstAmount ?? prev.gstAmount ?? 0);
     const notes = String(body?.notes ?? prev.notes ?? "");
+    const signatureName =
+      body?.signatureName !== undefined ? String(body?.signatureName ?? "").trim() : String(prev.signatureName ?? "").trim();
     const date = body?.date ? new Date(body.date) : prev.date;
     const linkedProductId =
       body.linkedProductId !== undefined
@@ -85,6 +88,7 @@ export async function PUT(request, context) {
           quantity,
           purchasePrice,
           gstAmount: Number.isFinite(gstAmount) ? Math.max(0, gstAmount) : 0,
+          signatureName,
           notes,
           lineTotal,
           linkedProductId: linkedProductId || null,

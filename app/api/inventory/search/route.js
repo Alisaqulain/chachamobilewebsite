@@ -44,6 +44,24 @@ export async function GET(request) {
     const cats = await SalesCategory.find().select("name").lean();
     const catMap = new Map(cats.map((c) => [String(c._id), c.name]));
 
+    const groupIdsForSig = rows.map((g) => g._id);
+    const sigByGroup =
+      groupIdsForSig.length > 0
+        ? await PartsPurchase.aggregate([
+            { $match: { stockGroupId: { $in: groupIdsForSig }, signatureName: { $regex: /\S/ } } },
+            { $group: { _id: "$stockGroupId", sigs: { $addToSet: "$signatureName" } } },
+          ])
+        : [];
+    const signatureHayByGroup = new Map(
+      sigByGroup.map((x) => [
+        String(x._id),
+        (x.sigs || [])
+          .filter(Boolean)
+          .map((s) => String(s).trim())
+          .join(" "),
+      ])
+    );
+
     const toks = tokens(q);
 
     const rowMatchesTokens = (g) => {
@@ -52,9 +70,11 @@ export async function GET(request) {
         g.productName,
         g.quality,
         catMap.get(String(g.salesCategoryId)) || "",
+        signatureHayByGroup.get(String(g._id)) || "",
       ]
         .join(" ")
         .toLowerCase()
+        .replace(/[,\-_/]+/g, " ")
         .replace(/\s+/g, " ");
       if (toks.length === 0) return true;
       return toks.every((t) => hay.includes(t));

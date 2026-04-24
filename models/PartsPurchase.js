@@ -12,6 +12,8 @@ const PartsPurchaseSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 1 },
     purchasePrice: { type: Number, required: true, min: 0 },
     gstAmount: { type: Number, default: 0, min: 0 },
+    /** Per line — main search term on sales dashboard (e.g. popular model code). */
+    signatureName: { type: String, trim: true, default: "" },
     notes: { type: String, trim: true, default: "" },
     lineTotal: { type: Number, required: true, min: 0 },
     linkedProductId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
@@ -21,4 +23,12 @@ const PartsPurchaseSchema = new mongoose.Schema(
 
 PartsPurchaseSchema.index({ supplierId: 1, date: -1 });
 
-export default mongoose.models.PartsPurchase || mongoose.model("PartsPurchase", PartsPurchaseSchema);
+/** Avoid a stale compiled model (e.g. Next dev) missing newer paths — otherwise new fields are dropped on save. */
+if (mongoose.models.PartsPurchase) {
+  delete mongoose.models.PartsPurchase;
+}
+if (mongoose.connection.models.PartsPurchase) {
+  delete mongoose.connection.models.PartsPurchase;
+}
+
+export default mongoose.model("PartsPurchase", PartsPurchaseSchema);
