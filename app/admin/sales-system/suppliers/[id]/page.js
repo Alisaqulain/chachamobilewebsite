@@ -39,6 +39,36 @@ function normalizeOcrForModels(raw) {
   return t;
 }
 
+async function cropImageToBlob(imageEl, crop) {
+  if (!imageEl || !crop || crop.w < 8 || crop.h < 8) return null;
+  const imageRect = imageEl.getBoundingClientRect();
+  if (!imageRect.width || !imageRect.height) return null;
+  const scaleX = imageEl.naturalWidth / imageRect.width;
+  const scaleY = imageEl.naturalHeight / imageRect.height;
+  const sx = Math.max(0, Math.round(crop.x * scaleX));
+  const sy = Math.max(0, Math.round(crop.y * scaleY));
+  const sw = Math.max(1, Math.round(crop.w * scaleX));
+  const sh = Math.max(1, Math.round(crop.h * scaleY));
+  const canvas = document.createElement("canvas");
+  canvas.width = sw;
+  canvas.height = sh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(imageEl, sx, sy, sw, sh, 0, 0, sw, sh);
+  return await new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob || null), "image/png");
+  });
+}
+
+function clampCrop(crop, stageW, stageH) {
+  const minSize = 44;
+  const safeW = Math.max(minSize, Math.min(stageW, crop.w));
+  const safeH = Math.max(minSize, Math.min(stageH, crop.h));
+  const safeX = Math.max(0, Math.min(stageW - safeW, crop.x));
+  const safeY = Math.max(0, Math.min(stageH - safeH, crop.y));
+  return { x: safeX, y: safeY, w: safeW, h: safeH };
+}
+
 export default function SupplierPurchasesPage() {
   const params = useParams();
   const id = params?.id ? String(params.id) : "";
@@ -62,16 +92,29 @@ export default function SupplierPurchasesPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const modelCameraInputRef = useRef(null);
   const modelGalleryInputRef = useRef(null);
+  const cropStageRef = useRef(null);
+  const cropImageRef = useRef(null);
   const [modelOcrBusy, setModelOcrBusy] = useState(false);
+  const [ocrImageUrl, setOcrImageUrl] = useState("");
+  const [ocrImageFile, setOcrImageFile] = useState(null);
+  const [ocrCropOpen, setOcrCropOpen] = useState(false);
+  const [ocrSelection, setOcrSelection] = useState(null);
+  const [ocrInteraction, setOcrInteraction] = useState(null);
+  const [ocrZoomPreviewUrl, setOcrZoomPreviewUrl] = useState("");
 
-  const onModelPhotoOcr = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!String(file.type || "").startsWith("image/")) {
-      setToast("Choose an image file");
-      return;
-    }
+  const closeOcrCrop = useCallback(() => {
+    setOcrImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setOcrImageFile(null);
+    setOcrCropOpen(false);
+    setOcrSelection(null);
+    setOcrInteraction(null);
+    setOcrZoomPreviewUrl("");
+  }, []);
+
+  const runModelOcr = useCallback(async (imageSource) => {
     setModelOcrBusy(true);
     setToast("");
     try {
@@ -80,7 +123,7 @@ export default function SupplierPurchasesPage() {
       try {
         const {
           data: { text },
-        } = await worker.recognize(file);
+        } = await worker.recognize(imageSource);
         const cleaned = normalizeOcrForModels(text);
         if (!cleaned) {
           setToast("No text found in photo — try a clearer shot or type manually");
@@ -90,7 +133,7 @@ export default function SupplierPurchasesPage() {
           ...f,
           modelNames: f.modelNames.trim() ? `${f.modelNames.trim()}, ${cleaned}` : cleaned,
         }));
-        setToast("Text from photo added — correct it if needed, then save");
+        setToast("Text from selected area added — correct it if needed, then save");
       } finally {
         await worker.terminate();
       }
@@ -100,6 +143,136 @@ export default function SupplierPurchasesPage() {
       setModelOcrBusy(false);
     }
   }, []);
+
+  const onModelPhotoOcr = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!String(file.type || "").startsWith("image/")) {
+      setToast("Choose an image file");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setOcrImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return previewUrl;
+    });
+    setOcrImageFile(file);
+    setOcrSelection(null);
+    setOcrInteraction(null);
+    setOcrCropOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ocrCropOpen || !ocrSelection || !cropImageRef.current) {
+      setOcrZoomPreviewUrl("");
+      return;
+    }
+    const imageEl = cropImageRef.current;
+    if (!imageEl.complete || !imageEl.naturalWidth || !imageEl.naturalHeight) return;
+    const imageRect = imageEl.getBoundingClientRect();
+    if (!imageRect.width || !imageRect.height) return;
+
+    const scaleX = imageEl.naturalWidth / imageRect.width;
+    const scaleY = imageEl.naturalHeight / imageRect.height;
+    const sx = Math.max(0, Math.round(ocrSelection.x * scaleX));
+    const sy = Math.max(0, Math.round(ocrSelection.y * scaleY));
+    const sw = Math.max(1, Math.round(ocrSelection.w * scaleX));
+    const sh = Math.max(1, Math.round(ocrSelection.h * scaleY));
+
+    const zoomCanvas = document.createElement("canvas");
+    zoomCanvas.width = Math.max(160, Math.min(900, sw * 2));
+    zoomCanvas.height = Math.max(80, Math.min(500, sh * 2));
+    const ctx = zoomCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(imageEl, sx, sy, sw, sh, 0, 0, zoomCanvas.width, zoomCanvas.height);
+    setOcrZoomPreviewUrl(zoomCanvas.toDataURL("image/png"));
+  }, [ocrCropOpen, ocrSelection]);
+
+  const getStageRect = useCallback(() => {
+    const stage = cropStageRef.current;
+    if (!stage) return null;
+    const rect = stage.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return rect;
+  }, []);
+
+  const ensureDefaultCrop = useCallback(() => {
+    const rect = getStageRect();
+    if (!rect) return;
+    const next = {
+      w: rect.width * 0.82,
+      h: Math.max(64, rect.height * 0.26),
+      x: rect.width * 0.09,
+      y: rect.height * 0.2,
+    };
+    setOcrSelection((prev) => (prev ? clampCrop(prev, rect.width, rect.height) : clampCrop(next, rect.width, rect.height)));
+  }, [getStageRect]);
+
+  const onCropPointerMove = useCallback(
+    (e) => {
+      if (!ocrInteraction) return;
+      const rect = getStageRect();
+      if (!rect) return;
+      const px = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
+      const py = Math.min(rect.height, Math.max(0, e.clientY - rect.top));
+      const dx = px - ocrInteraction.startX;
+      const dy = py - ocrInteraction.startY;
+      const base = ocrInteraction.origin;
+      let next = base;
+
+      if (ocrInteraction.type === "move") {
+        next = { ...base, x: base.x + dx, y: base.y + dy };
+      } else if (ocrInteraction.type === "resize-nw") {
+        next = { x: base.x + dx, y: base.y + dy, w: base.w - dx, h: base.h - dy };
+      } else if (ocrInteraction.type === "resize-ne") {
+        next = { x: base.x, y: base.y + dy, w: base.w + dx, h: base.h - dy };
+      } else if (ocrInteraction.type === "resize-sw") {
+        next = { x: base.x + dx, y: base.y, w: base.w - dx, h: base.h + dy };
+      } else if (ocrInteraction.type === "resize-se") {
+        next = { x: base.x, y: base.y, w: base.w + dx, h: base.h + dy };
+      }
+
+      setOcrSelection(clampCrop(next, rect.width, rect.height));
+    },
+    [getStageRect, ocrInteraction]
+  );
+
+  const onCropPointerEnd = useCallback((e) => {
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    setOcrInteraction(null);
+  }, []);
+
+  const startCropInteraction = useCallback(
+    (e, type) => {
+      if (!ocrSelection) return;
+      const rect = getStageRect();
+      if (!rect) return;
+      const px = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
+      const py = Math.min(rect.height, Math.max(0, e.clientY - rect.top));
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      setOcrInteraction({
+        type,
+        startX: px,
+        startY: py,
+        origin: ocrSelection,
+      });
+    },
+    [getStageRect, ocrSelection]
+  );
+
+  const applySelectedCropAndRead = useCallback(async () => {
+    if (!ocrImageFile) return;
+    let imageForOcr = ocrImageFile;
+    if (ocrSelection?.w >= 8 && ocrSelection?.h >= 8 && cropImageRef.current) {
+      const cropped = await cropImageToBlob(cropImageRef.current, ocrSelection);
+      if (cropped) imageForOcr = cropped;
+    }
+    closeOcrCrop();
+    await runModelOcr(imageForOcr);
+  }, [closeOcrCrop, ocrImageFile, ocrSelection, runModelOcr]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -475,12 +648,13 @@ export default function SupplierPurchasesPage() {
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-black/45">Model / product label</label>
           <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            <input
+            <textarea
               required
               value={form.modelNames}
               onChange={(e) => setForm((f) => ({ ...f, modelNames: e.target.value }))}
-              placeholder="e.g. A23, Reno 12 (one line = one qty)"
-              className="min-h-12 w-full flex-1 rounded-lg border border-black/15 px-3 text-sm"
+              rows={3}
+              placeholder="e.g. A23, Reno 12 (separate with comma or new line)"
+              className="min-h-12 w-full flex-1 resize-y rounded-lg border border-black/15 px-3 py-2 text-sm leading-6"
             />
             <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:justify-stretch">
               <button
@@ -517,7 +691,7 @@ export default function SupplierPurchasesPage() {
             onChange={onModelPhotoOcr}
           />
           <p className="mt-1 text-[11px] text-black/45">
-            OCR runs in the browser (English). Good lighting and a straight photo help; you can always edit the field.
+            OCR runs in the browser (English). After photo upload, drag to select only the text area you want read.
           </p>
         </div>
         <div>
@@ -582,6 +756,113 @@ export default function SupplierPurchasesPage() {
           </button>
         </div>
       </form>
+
+      {ocrCropOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center">
+          <div className="w-full max-w-3xl rounded-xl bg-white p-4 shadow-xl">
+            <h3 className="text-base font-bold text-black">Select text area for OCR</h3>
+              <p className="mt-1 text-xs text-black/60">
+              Frame is ready. Drag inside frame to move, drag corner dots to resize around model text lines.
+            </p>
+            {ocrZoomPreviewUrl ? (
+              <div className="mt-3 rounded-lg border border-black/15 bg-zinc-50 p-2">
+                <p className="mb-2 text-[11px] font-semibold text-black/60">Auto zoom preview (selected area)</p>
+                <img
+                  src={ocrZoomPreviewUrl}
+                  alt="Zoomed crop preview"
+                  className="max-h-36 w-full rounded border border-black/10 object-contain bg-white"
+                />
+              </div>
+            ) : null}
+            <div
+              ref={cropStageRef}
+              className="relative mt-3 max-h-[60vh] touch-none overflow-hidden rounded-lg border border-black/15 bg-zinc-100"
+              onPointerMove={onCropPointerMove}
+              onPointerUp={onCropPointerEnd}
+              onPointerCancel={onCropPointerEnd}
+            >
+              <img
+                ref={cropImageRef}
+                src={ocrImageUrl}
+                alt="OCR selection preview"
+                className="h-auto max-h-[60vh] w-full object-contain"
+                onLoad={ensureDefaultCrop}
+              />
+              <div className="pointer-events-none absolute inset-0 bg-black/10" />
+              {ocrSelection?.w > 0 && ocrSelection?.h > 0 ? (
+                <>
+                  <div
+                    className="pointer-events-none absolute border-2 border-brand bg-brand/10"
+                    style={{
+                      left: `${ocrSelection.x}px`,
+                      top: `${ocrSelection.y}px`,
+                      width: `${ocrSelection.w}px`,
+                      height: `${ocrSelection.h}px`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Move crop frame"
+                    onPointerDown={(e) => startCropInteraction(e, "move")}
+                    className="absolute cursor-move rounded-md border border-brand/60 bg-transparent"
+                    style={{
+                      left: `${ocrSelection.x}px`,
+                      top: `${ocrSelection.y}px`,
+                      width: `${ocrSelection.w}px`,
+                      height: `${ocrSelection.h}px`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop top left"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-nw")}
+                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x - 8}px`, top: `${ocrSelection.y - 8}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop top right"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-ne")}
+                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w - 8}px`, top: `${ocrSelection.y - 8}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop bottom left"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-sw")}
+                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x - 8}px`, top: `${ocrSelection.y + ocrSelection.h - 8}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop bottom right"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-se")}
+                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w - 8}px`, top: `${ocrSelection.y + ocrSelection.h - 8}px` }}
+                  />
+                </>
+              ) : null}
+            </div>
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeOcrCrop}
+                className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-semibold text-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={modelOcrBusy}
+                onClick={applySelectedCropAndRead}
+                className="min-h-11 rounded-lg bg-black px-4 text-sm font-bold text-brand disabled:opacity-50"
+              >
+                {modelOcrBusy ? "Reading…" : "Read selected area"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <h2 className="mt-10 text-lg font-bold text-black">Purchases</h2>
       {loading ? (
