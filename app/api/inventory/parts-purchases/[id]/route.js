@@ -3,12 +3,30 @@ import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import PartsPurchase from "@/models/PartsPurchase";
+import InventoryStockGroup from "@/models/InventoryStockGroup";
 import SalesCategory from "@/models/SalesCategory";
 import {
   applyPartsPurchaseDelete,
   applyPartsPurchaseLimitedUpdate,
+  ensureGroupForLine,
+  getReturnedQtyForPurchase,
   toProductId,
 } from "@/lib/partsInventory";
+import { resolveProductQualityName } from "@/lib/productQualityHelpers";
+
+function normalizeAliasText(s) {
+  const seen = new Set();
+  const out = [];
+  for (const part of String(s || "").split(",")) {
+    const value = part.trim().replace(/\s+/g, " ");
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out.join(", ");
+}
 
 export async function GET(request, context) {
   try {
@@ -72,8 +90,43 @@ export async function PUT(request, context) {
       body.linkedProductId !== undefined
         ? toProductId(body.linkedProductId)
         : toProductId(prev.linkedProductId);
+    const mobileName =
+      body?.mobileName !== undefined
+        ? normalizeAliasText(body.mobileName)
+        : normalizeAliasText(prev.mobileName);
+    const productName =
+      body?.productName !== undefined
+        ? normalizeAliasText(body.productName)
+        : normalizeAliasText(prev.productName);
+    const qualityInput = body?.quality !== undefined ? body.quality : prev.quality;
+    const qualityResolved = await resolveProductQualityName(qualityInput);
+    if (!qualityResolved.ok) return NextResponse.json({ error: qualityResolved.error }, { status: 400 });
+    const quality = qualityResolved.name;
 
     const lineTotal = quantity * purchasePrice + (Number.isFinite(gstAmount) ? Math.max(0, gstAmount) : 0);
+    const identityChanged =
+      mobileName !== normalizeAliasText(prev.mobileName) ||
+      productName !== normalizeAliasText(prev.productName) ||
+      quality !== String(prev.quality || "");
+
+    if (identityChanged) {
+      if (!mobileName || !productName) {
+        return NextResponse.json({ error: "Branch and model / product are required" }, { status: 400 });
+      }
+      if (linkedProductId) {
+        return NextResponse.json(
+          { error: "Change linked product line names from product mapping flow only." },
+          { status: 400 }
+        );
+      }
+      const returnedQty = await getReturnedQtyForPurchase(prev._id);
+      if (returnedQty > 0) {
+        return NextResponse.json(
+          { error: "This line has returns. Remove returns first, then edit branch/model/quality." },
+          { status: 400 }
+        );
+      }
+    }
 
     await applyPartsPurchaseLimitedUpdate(prev, {
       quantity,
@@ -81,10 +134,30 @@ export async function PUT(request, context) {
       date,
     });
 
+    let stockGroupId = prev.stockGroupId;
+    if (identityChanged) {
+      const newGroup = await ensureGroupForLine({
+        salesCategoryId: prev.salesCategoryId,
+        mobileName,
+        productName,
+        quality,
+      });
+      await InventoryStockGroup.updateOne({ _id: prev.stockGroupId }, { $inc: { purchasedQty: -quantity } });
+      await InventoryStockGroup.updateOne(
+        { _id: newGroup._id },
+        { $inc: { purchasedQty: quantity }, $set: { lastPurchaseAt: date || new Date() } }
+      );
+      stockGroupId = newGroup._id;
+    }
+
     await PartsPurchase.updateOne(
       { _id: id },
       {
         $set: {
+          mobileName,
+          productName,
+          quality,
+          stockGroupId,
           quantity,
           purchasePrice,
           gstAmount: Number.isFinite(gstAmount) ? Math.max(0, gstAmount) : 0,

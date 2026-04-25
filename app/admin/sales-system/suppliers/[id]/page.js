@@ -39,6 +39,123 @@ function normalizeOcrForModels(raw) {
   return t;
 }
 
+function deriveSignatureFromProductLabel(label) {
+  const text = String(label || "").trim();
+  if (!text) return "";
+  const firstPart = text.split(",")[0]?.trim() || "";
+  if (!firstPart) return "";
+  const normalized = firstPart.replace(/\s+/g, " ").trim();
+  return normalized;
+}
+
+function SuggestInput({
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+  required,
+  className,
+  autoComplete = "off",
+}) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const rootRef = useRef(null);
+
+  const filtered = useMemo(() => {
+    const q = String(value || "").trim().toLowerCase();
+    const base = Array.isArray(suggestions) ? suggestions : [];
+    if (!q) return base.slice(0, 8);
+    return base.filter((x) => String(x).toLowerCase().includes(q)).slice(0, 8);
+  }, [suggestions, value]);
+
+  const applyValue = useCallback(
+    (next) => {
+      onChange(next);
+      setOpen(false);
+      setActiveIndex(-1);
+    },
+    [onChange]
+  );
+
+  const onKeyDown = useCallback(
+    (e) => {
+      if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        setOpen(filtered.length > 0);
+      }
+      if (!filtered.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % filtered.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIndex((i) => (i <= 0 ? filtered.length - 1 : i - 1));
+      } else if (e.key === "Enter") {
+        if (open && activeIndex >= 0 && activeIndex < filtered.length) {
+          e.preventDefault();
+          applyValue(filtered[activeIndex]);
+        }
+      } else if (e.key === "Escape") {
+        setOpen(false);
+        setActiveIndex(-1);
+      }
+    },
+    [activeIndex, applyValue, filtered, open]
+  );
+
+  useEffect(() => {
+    const onDocPointerDown = (event) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(event.target)) {
+        setOpen(false);
+        setActiveIndex(-1);
+      }
+    };
+    document.addEventListener("pointerdown", onDocPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+  }, []);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <input
+        required={required}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActiveIndex(-1);
+        }}
+        onFocus={() => setOpen(filtered.length > 0)}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        className={className}
+      />
+      {open && filtered.length ? (
+        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-black/15 bg-white py-1 shadow-lg">
+          {filtered.map((item, idx) => (
+            <li key={`${item}-${idx}`}>
+              <button
+                type="button"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  applyValue(item);
+                }}
+                onClick={() => applyValue(item)}
+                className={`w-full px-3 py-3 text-left text-sm ${
+                  idx === activeIndex ? "bg-zinc-100 text-black" : "text-black/90 hover:bg-zinc-50"
+                }`}
+              >
+                {item}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function fixCommonModelOcrArtifacts(raw) {
   if (!raw || typeof raw !== "string") return "";
   return raw
@@ -114,6 +231,7 @@ export default function SupplierPurchasesPage() {
   const [toast, setToast] = useState("");
   const [form, setForm] = useState(emptyPurchase);
   const [saving, setSaving] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [returnFor, setReturnFor] = useState(null);
@@ -143,6 +261,9 @@ export default function SupplierPurchasesPage() {
   const [branchSuggestions, setBranchSuggestions] = useState([]);
   const [qualitySuggestions, setQualitySuggestions] = useState([]);
   const [signatureSuggestions, setSignatureSuggestions] = useState([]);
+  const [selectedPurchaseIds, setSelectedPurchaseIds] = useState([]);
+  const [signatureManuallyEdited, setSignatureManuallyEdited] = useState(false);
+  const [purchaseSearch, setPurchaseSearch] = useState("");
 
   const closeOcrCrop = useCallback(() => {
     setOcrImageUrl((prev) => {
@@ -247,10 +368,15 @@ export default function SupplierPurchasesPage() {
           setToast("No text found in photo — try a clearer shot or type manually");
           return;
         }
-        setForm((f) => ({
-          ...f,
-          modelNames: f.modelNames.trim() ? `${f.modelNames.trim()}, ${cleaned}` : cleaned,
-        }));
+        setForm((f) => {
+          const nextModelNames = f.modelNames.trim() ? `${f.modelNames.trim()}, ${cleaned}` : cleaned;
+          const autoSignature = deriveSignatureFromProductLabel(nextModelNames);
+          return {
+            ...f,
+            modelNames: nextModelNames,
+            signatureName: signatureManuallyEdited ? f.signatureName : autoSignature,
+          };
+        });
         setToast("Text from selected area added with enhanced OCR — verify quickly, then save");
       } finally {
         await worker.terminate();
@@ -260,7 +386,7 @@ export default function SupplierPurchasesPage() {
     } finally {
       setModelOcrBusy(false);
     }
-  }, []);
+  }, [signatureManuallyEdited]);
 
   const onModelPhotoOcr = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -536,6 +662,67 @@ export default function SupplierPurchasesPage() {
     () => (purchases || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0),
     [purchases]
   );
+  const filteredPurchases = useMemo(() => {
+    const q = String(purchaseSearch || "")
+      .trim()
+      .toLowerCase();
+    if (!q) return purchases;
+    return purchases.filter((row) => {
+      const hay = [
+        row.mobileName,
+        row.productName,
+        row.quality,
+        row.signatureName,
+        row.salesCategoryName,
+        row.notes,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [purchaseSearch, purchases]);
+  const filteredPurchaseTotal = useMemo(
+    () => filteredPurchases.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+    [filteredPurchases]
+  );
+  const filteredPurchaseUnits = useMemo(
+    () => filteredPurchases.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+    [filteredPurchases]
+  );
+  useEffect(() => {
+    const allowed = new Set(filteredPurchases.map((row) => String(row._id)));
+    setSelectedPurchaseIds((prev) => prev.filter((id) => allowed.has(id)));
+  }, [filteredPurchases]);
+  const allPurchasesSelected = useMemo(
+    () => filteredPurchases.length > 0 && selectedPurchaseIds.length === filteredPurchases.length,
+    [filteredPurchases.length, selectedPurchaseIds.length]
+  );
+  const selectedPurchaseRows = useMemo(() => {
+    if (!selectedPurchaseIds.length) return [];
+    const idSet = new Set(selectedPurchaseIds);
+    return purchases.filter((row) => idSet.has(String(row._id)));
+  }, [purchases, selectedPurchaseIds]);
+  const selectedPurchaseUnits = useMemo(
+    () => selectedPurchaseRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+    [selectedPurchaseRows]
+  );
+  const selectedPurchaseAmount = useMemo(
+    () => selectedPurchaseRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+    [selectedPurchaseRows]
+  );
+
+  const togglePurchaseSelection = useCallback((rowId) => {
+    const id = String(rowId);
+    setSelectedPurchaseIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+
+  const toggleSelectAllPurchases = useCallback(() => {
+    setSelectedPurchaseIds((prev) => {
+      if (filteredPurchases.length === 0) return [];
+      if (prev.length === filteredPurchases.length) return [];
+      return filteredPurchases.map((row) => String(row._id));
+    });
+  }, [filteredPurchases]);
 
   async function saveSupplierDetails(e) {
     e.preventDefault();
@@ -602,6 +789,7 @@ export default function SupplierPurchasesPage() {
         date: new Date().toISOString().slice(0, 10),
         salesCategoryId: pickDefaultSalesCategoryId(categories),
       });
+      setSignatureManuallyEdited(false);
       setToast("Purchase saved · stock updated");
       await load();
     } catch (e) {
@@ -620,6 +808,9 @@ export default function SupplierPurchasesPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mobileName: editForm.mobileName,
+          productName: editForm.productName,
+          quality: editForm.quality,
           quantity: Number(editForm.quantity),
           purchasePrice: Number(editForm.purchasePrice),
           gstAmount: Number(editForm.gstAmount || 0),
@@ -650,7 +841,39 @@ export default function SupplierPurchasesPage() {
       return;
     }
     setToast("Purchase deleted");
+    setSelectedPurchaseIds((prev) => prev.filter((x) => x !== String(row._id)));
     await load();
+  }
+
+  async function deleteSelectedPurchases() {
+    if (!selectedPurchaseIds.length) return;
+    if (!confirm(`Delete ${selectedPurchaseIds.length} selected purchase line(s)?`)) return;
+    setBulkDeleting(true);
+    try {
+      const selectedSet = new Set(selectedPurchaseIds);
+      const rows = filteredPurchases.filter((row) => selectedSet.has(String(row._id)));
+      let okCount = 0;
+      let failCount = 0;
+      for (const row of rows) {
+        const res = await fetch(`/api/inventory/parts-purchases/${row._id}`, { method: "DELETE" });
+        if (res.ok) {
+          okCount += 1;
+        } else {
+          failCount += 1;
+        }
+      }
+      setSelectedPurchaseIds([]);
+      await load();
+      if (failCount === 0) {
+        setToast(`${okCount} purchase line(s) deleted`);
+      } else {
+        setToast(`${okCount} deleted, ${failCount} failed`);
+      }
+    } catch (e) {
+      setToast(e?.message || "Bulk delete failed");
+    } finally {
+      setBulkDeleting(false);
+    }
   }
 
   async function submitReturn(e) {
@@ -682,6 +905,9 @@ export default function SupplierPurchasesPage() {
   function openEdit(row) {
     setEditId(row._id);
     setEditForm({
+      mobileName: row.mobileName || "",
+      productName: row.productName || "",
+      quality: row.quality || "",
       quantity: String(row.quantity),
       purchasePrice: String(row.purchasePrice),
       gstAmount: String(row.gstAmount ?? 0),
@@ -799,25 +1025,29 @@ export default function SupplierPurchasesPage() {
         </div>
         <div>
           <label className="text-xs font-bold text-black/45">Quality</label>
-          <input
-            required
-            value={form.quality}
-            onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value }))}
-            placeholder="e.g. Original, Local…"
-            list="supplier-quality-suggestions"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
-          />
+          <div className="mt-1">
+            <SuggestInput
+              required
+              value={form.quality}
+              onChange={(next) => setForm((f) => ({ ...f, quality: next }))}
+              suggestions={qualitySuggestions}
+              placeholder="e.g. Original, Local…"
+              className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            />
+          </div>
         </div>
         <div>
           <label className="text-xs font-bold text-black/45">Branch / brand name</label>
-          <input
-            required
-            value={form.folderName}
-            onChange={(e) => setForm((f) => ({ ...f, folderName: e.target.value }))}
-            placeholder="e.g. Oppo, Samsung (not the category above)"
-            list="supplier-branch-suggestions"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
-          />
+          <div className="mt-1">
+            <SuggestInput
+              required
+              value={form.folderName}
+              onChange={(next) => setForm((f) => ({ ...f, folderName: next }))}
+              suggestions={branchSuggestions}
+              placeholder="e.g. Oppo, Samsung (not the category above)"
+              className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            />
+          </div>
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-black/45">Model / product label</label>
@@ -825,7 +1055,17 @@ export default function SupplierPurchasesPage() {
             <textarea
               required
               value={form.modelNames}
-              onChange={(e) => setForm((f) => ({ ...f, modelNames: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => {
+                  const nextModelNames = e.target.value;
+                  const autoSignature = deriveSignatureFromProductLabel(nextModelNames);
+                  return {
+                    ...f,
+                    modelNames: nextModelNames,
+                    signatureName: signatureManuallyEdited ? f.signatureName : autoSignature,
+                  };
+                })
+              }
               rows={3}
               placeholder="e.g. A23, Reno 12 (separate with comma or new line)"
               className="min-h-12 w-full flex-1 resize-y rounded-lg border border-black/15 px-3 py-2 text-sm leading-6"
@@ -902,14 +1142,18 @@ export default function SupplierPurchasesPage() {
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-black/45">Signature name (this line)</label>
-          <input
-            value={form.signatureName}
-            onChange={(e) => setForm((f) => ({ ...f, signatureName: e.target.value }))}
-            placeholder='e.g. a23 — shows this row when admin searches "a23" on dashboard'
-            list="supplier-signature-suggestions"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
-            autoComplete="off"
-          />
+          <div className="mt-1">
+            <SuggestInput
+              value={form.signatureName}
+              onChange={(next) => {
+                setSignatureManuallyEdited(true);
+                setForm((f) => ({ ...f, signatureName: next }));
+              }}
+              suggestions={signatureSuggestions}
+              placeholder='e.g. a23 — shows this row when admin searches "a23" on dashboard'
+              className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            />
+          </div>
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
           <label className="text-xs font-bold text-black/45">Notes</label>
@@ -929,22 +1173,6 @@ export default function SupplierPurchasesPage() {
           </button>
         </div>
       </form>
-
-      <datalist id="supplier-branch-suggestions">
-        {branchSuggestions.map((x) => (
-          <option key={x} value={x} />
-        ))}
-      </datalist>
-      <datalist id="supplier-signature-suggestions">
-        {signatureSuggestions.map((x) => (
-          <option key={x} value={x} />
-        ))}
-      </datalist>
-      <datalist id="supplier-quality-suggestions">
-        {qualitySuggestions.map((x) => (
-          <option key={x} value={x} />
-        ))}
-      </datalist>
 
       {cameraModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center">
@@ -1110,6 +1338,17 @@ export default function SupplierPurchasesPage() {
       ) : null}
 
       <h2 className="mt-10 text-lg font-bold text-black">Purchases</h2>
+      <div className="mt-2 max-w-md">
+        <label className="text-xs font-bold text-black/45">Search purchases</label>
+        <input
+          type="search"
+          value={purchaseSearch}
+          onChange={(e) => setPurchaseSearch(e.target.value)}
+          placeholder="Search model, branch, quality, signature..."
+          className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+          autoComplete="off"
+        />
+      </div>
       {loading ? (
         <p className="mt-4 text-sm text-black/55">Loading…</p>
       ) : (
@@ -1121,21 +1360,50 @@ export default function SupplierPurchasesPage() {
                 Supplier total: ₹{supplierPurchaseTotal.toLocaleString("en-IN")} · Units:{" "}
                 {supplierPurchaseUnits.toLocaleString("en-IN")}
               </p>
+              <p className="mt-1 text-xs font-semibold text-black/60">
+                Matched total: ₹{filteredPurchaseTotal.toLocaleString("en-IN")} · Units:{" "}
+                {filteredPurchaseUnits.toLocaleString("en-IN")} · Rows: {filteredPurchases.length}
+              </p>
+              {selectedPurchaseIds.length ? (
+                <p className="mt-1 text-xs font-semibold text-black/70">
+                  Selected: {selectedPurchaseIds.length} · Units: {selectedPurchaseUnits.toLocaleString("en-IN")} ·
+                  Amount: ₹{selectedPurchaseAmount.toLocaleString("en-IN")}
+                </p>
+              ) : null}
             </div>
-            <DownloadExports
-              filenameBase={`supplier_purchases_${supplier?.name || id}`}
-              title="Supplier purchases"
-              subtitle={supplier?.name || "Supplier"}
-              metaLines={[`Rows: ${exportRows.length}`]}
-              columns={exportColumns}
-              rows={exportRows}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={!selectedPurchaseIds.length || bulkDeleting}
+                onClick={deleteSelectedPurchases}
+                className="min-h-10 rounded-lg border border-red-300 bg-red-50 px-3 text-xs font-bold text-red-700 disabled:opacity-50"
+              >
+                {bulkDeleting ? "Deleting…" : `Delete selected (${selectedPurchaseIds.length})`}
+              </button>
+              <DownloadExports
+                filenameBase={`supplier_purchases_${supplier?.name || id}`}
+                title="Supplier purchases"
+                subtitle={supplier?.name || "Supplier"}
+                metaLines={[`Rows: ${exportRows.length}`]}
+                columns={exportColumns}
+                rows={exportRows}
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-black/10 bg-white shadow-sm">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
               <tr>
+                <th className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={allPurchasesSelected}
+                    onChange={toggleSelectAllPurchases}
+                    aria-label="Select all purchase rows"
+                    className="h-4 w-4 rounded border-black/25"
+                  />
+                </th>
                 <th className="px-3 py-2">Date</th>
                 <th className="px-3 py-2">Branch</th>
                 <th className="px-3 py-2">Model</th>
@@ -1149,8 +1417,17 @@ export default function SupplierPurchasesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
-              {purchases.map((row) => (
+              {filteredPurchases.map((row) => (
                 <tr key={row._id}>
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedPurchaseIds.includes(String(row._id))}
+                      onChange={() => togglePurchaseSelection(row._id)}
+                      aria-label={`Select purchase ${row._id}`}
+                      className="h-4 w-4 rounded border-black/25"
+                    />
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">{row.date ? new Date(row.date).toLocaleDateString() : "—"}</td>
                   <td className="px-3 py-2">{row.mobileName}</td>
                   <td className="px-3 py-2 font-medium">{row.productName}</td>
@@ -1175,7 +1452,11 @@ export default function SupplierPurchasesPage() {
               ))}
             </tbody>
           </table>
-          {purchases.length === 0 ? <p className="p-6 text-center text-sm text-black/50">No purchases yet.</p> : null}
+          {filteredPurchases.length === 0 ? (
+            <p className="p-6 text-center text-sm text-black/50">
+              {purchases.length ? "No matching purchases." : "No purchases yet."}
+            </p>
+          ) : null}
           </div>
         </div>
       )}
@@ -1191,6 +1472,39 @@ export default function SupplierPurchasesPage() {
               Includes <strong>signature name</strong> — the main term to find this line on the sales dashboard (e.g. a23).
             </p>
             <div className="mt-4 grid gap-3">
+              <div>
+                <label className="text-xs font-bold text-black/45">Branch / brand name</label>
+                <div className="mt-1">
+                  <SuggestInput
+                    required
+                    value={editForm.mobileName}
+                    onChange={(next) => setEditForm((f) => ({ ...f, mobileName: next }))}
+                    suggestions={branchSuggestions}
+                    className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Model / product label</label>
+                <input
+                  required
+                  value={editForm.productName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, productName: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Quality</label>
+                <div className="mt-1">
+                  <SuggestInput
+                    required
+                    value={editForm.quality}
+                    onChange={(next) => setEditForm((f) => ({ ...f, quality: next }))}
+                    suggestions={qualitySuggestions}
+                    className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-bold text-black/45">Date</label>
                 <input
@@ -1247,13 +1561,15 @@ export default function SupplierPurchasesPage() {
               </div>
               <div>
                 <label className="text-xs font-bold text-black/45">Signature name (this line)</label>
-                <input
-                  value={editForm.signatureName}
-                  onChange={(e) => setEditForm((f) => ({ ...f, signatureName: e.target.value }))}
-                  placeholder="e.g. a23"
-                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
-                  autoComplete="off"
-                />
+                <div className="mt-1">
+                  <SuggestInput
+                    value={editForm.signatureName}
+                    onChange={(next) => setEditForm((f) => ({ ...f, signatureName: next }))}
+                    suggestions={signatureSuggestions}
+                    placeholder="e.g. a23"
+                    className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  />
+                </div>
               </div>
             </div>
             <div className="mt-4 flex gap-2">
