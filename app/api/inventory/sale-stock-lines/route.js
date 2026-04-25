@@ -17,7 +17,7 @@ function tokens(s) {
 
 /**
  * Lines that have purchase-backed stock and net qty &gt; 0 — for sales entry picker.
- * Query: salesCategoryId (optional), branch (substring on folder/mobileName), q (substring tokens).
+ * Query: salesCategoryId (optional), branch (substring on folder/mobileName), q (substring tokens), signature (substring on signature names only).
  */
 export async function GET(request) {
   try {
@@ -27,6 +27,7 @@ export async function GET(request) {
     const salesCategoryId = searchParams.get("salesCategoryId")?.trim();
     const branch = searchParams.get("branch")?.trim() || "";
     const q = searchParams.get("q")?.trim() || "";
+    const signature = searchParams.get("signature")?.trim() || "";
 
     await connectDB();
     const purchasedIds = (await PartsPurchase.distinct("stockGroupId")).filter(Boolean);
@@ -63,6 +64,7 @@ export async function GET(request) {
 
     const branchLower = branch.toLowerCase();
     const qToks = tokens(q);
+    const signatureLower = signature.toLowerCase();
 
     const lines = [];
     for (const g of groups) {
@@ -81,8 +83,10 @@ export async function GET(request) {
         .toLowerCase()
         .replace(/[,\-_/]+/g, " ")
         .replace(/\s+/g, " ");
+      const sigHay = String(sigMap.get(String(g._id)) || "").toLowerCase();
 
       if (qToks.length && !qToks.every((t) => hay.includes(t))) continue;
+      if (signatureLower && !sigHay.includes(signatureLower)) continue;
 
       lines.push({
         stockGroupId: String(g._id),

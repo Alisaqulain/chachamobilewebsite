@@ -140,6 +140,9 @@ export default function SupplierPurchasesPage() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [cameraBusy, setCameraBusy] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [branchSuggestions, setBranchSuggestions] = useState([]);
+  const [qualitySuggestions, setQualitySuggestions] = useState([]);
+  const [signatureSuggestions, setSignatureSuggestions] = useState([]);
 
   const closeOcrCrop = useCallback(() => {
     setOcrImageUrl((prev) => {
@@ -473,6 +476,21 @@ export default function SupplierPurchasesPage() {
   }, [supplier?._id, supplier?.name, supplier?.phone, supplier?.address]);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/inventory/suggestions");
+        const j = await res.json();
+        if (!res.ok) return;
+        setBranchSuggestions(Array.isArray(j.branches) ? j.branches : []);
+        setQualitySuggestions(Array.isArray(j.qualities) ? j.qualities : []);
+        setSignatureSuggestions(Array.isArray(j.signatures) ? j.signatures : []);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 2600);
     return () => clearTimeout(t);
@@ -786,6 +804,7 @@ export default function SupplierPurchasesPage() {
             value={form.quality}
             onChange={(e) => setForm((f) => ({ ...f, quality: e.target.value }))}
             placeholder="e.g. Original, Local…"
+            list="supplier-quality-suggestions"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -796,6 +815,7 @@ export default function SupplierPurchasesPage() {
             value={form.folderName}
             onChange={(e) => setForm((f) => ({ ...f, folderName: e.target.value }))}
             placeholder="e.g. Oppo, Samsung (not the category above)"
+            list="supplier-branch-suggestions"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -848,6 +868,8 @@ export default function SupplierPurchasesPage() {
             min={1}
             value={form.quantity}
             onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+            onWheel={(e) => e.currentTarget.blur()}
+            inputMode="numeric"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -860,6 +882,8 @@ export default function SupplierPurchasesPage() {
             step={1}
             value={form.purchasePrice}
             onChange={(e) => setForm((f) => ({ ...f, purchasePrice: e.target.value }))}
+            onWheel={(e) => e.currentTarget.blur()}
+            inputMode="numeric"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -871,6 +895,8 @@ export default function SupplierPurchasesPage() {
             step={1}
             value={form.gstAmount}
             onChange={(e) => setForm((f) => ({ ...f, gstAmount: e.target.value }))}
+            onWheel={(e) => e.currentTarget.blur()}
+            inputMode="numeric"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
           />
         </div>
@@ -880,6 +906,7 @@ export default function SupplierPurchasesPage() {
             value={form.signatureName}
             onChange={(e) => setForm((f) => ({ ...f, signatureName: e.target.value }))}
             placeholder='e.g. a23 — shows this row when admin searches "a23" on dashboard'
+            list="supplier-signature-suggestions"
             className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
             autoComplete="off"
           />
@@ -902,6 +929,22 @@ export default function SupplierPurchasesPage() {
           </button>
         </div>
       </form>
+
+      <datalist id="supplier-branch-suggestions">
+        {branchSuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
+      <datalist id="supplier-signature-suggestions">
+        {signatureSuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
+      <datalist id="supplier-quality-suggestions">
+        {qualitySuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
 
       {cameraModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center">
@@ -1165,6 +1208,8 @@ export default function SupplierPurchasesPage() {
                   min={1}
                   value={editForm.quantity}
                   onChange={(e) => setEditForm((f) => ({ ...f, quantity: e.target.value }))}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  inputMode="numeric"
                   className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
                 />
               </div>
@@ -1175,6 +1220,8 @@ export default function SupplierPurchasesPage() {
                   min={0}
                   value={editForm.purchasePrice}
                   onChange={(e) => setEditForm((f) => ({ ...f, purchasePrice: e.target.value }))}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  inputMode="numeric"
                   className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
                 />
               </div>
@@ -1185,6 +1232,8 @@ export default function SupplierPurchasesPage() {
                   min={0}
                   value={editForm.gstAmount}
                   onChange={(e) => setEditForm((f) => ({ ...f, gstAmount: e.target.value }))}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  inputMode="numeric"
                   className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
                 />
               </div>

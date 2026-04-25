@@ -48,6 +48,7 @@ export default function SalesSystemDashboardPage() {
   const [error, setError] = useState("");
 
   const [categories, setCategories] = useState([]);
+  const [qualitySuggestions, setQualitySuggestions] = useState([]);
   const [stockSearch, setStockSearch] = useState("");
   const stockSearchDebounced = useDebounced(stockSearch, 320);
   const [stockSalesCategoryId, setStockSalesCategoryId] = useState("");
@@ -60,6 +61,7 @@ export default function SalesSystemDashboardPage() {
   const [modelSearch, setModelSearch] = useState("");
   const modelSearchDebounced = useDebounced(modelSearch, 320);
   const [modelResults, setModelResults] = useState([]);
+  const [selectedModelRowIds, setSelectedModelRowIds] = useState([]);
   const [modelLoading, setModelLoading] = useState(false);
   const [modelHint, setModelHint] = useState("Search model/folder names to see matching purchase entries.");
 
@@ -82,9 +84,14 @@ export default function SalesSystemDashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const catRes = await fetch("/api/sales-categories");
+        const [catRes, sugRes] = await Promise.all([
+          fetch("/api/sales-categories"),
+          fetch("/api/inventory/suggestions"),
+        ]);
         const catJson = await catRes.json();
+        const sugJson = await sugRes.json();
         if (catRes.ok) setCategories(catJson.categories || []);
+        if (sugRes.ok) setQualitySuggestions(Array.isArray(sugJson.qualities) ? sugJson.qualities : []);
       } catch {
         /* ignore */
       }
@@ -129,6 +136,7 @@ export default function SalesSystemDashboardPage() {
     const q = modelSearchDebounced.trim();
     if (q.length < 1) {
       setModelResults([]);
+      setSelectedModelRowIds([]);
       setModelHint("Search model/folder names to see matching purchase entries.");
       return;
     }
@@ -139,9 +147,15 @@ export default function SalesSystemDashboardPage() {
       const res = await fetch(`/api/inventory/parts-purchases?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Model search failed");
-      setModelResults(Array.isArray(json.purchases) ? json.purchases : []);
+      const rows = Array.isArray(json.purchases) ? json.purchases : [];
+      setModelResults(rows);
+      setSelectedModelRowIds((prev) => {
+        const keep = new Set(rows.map((r) => String(r._id)));
+        return prev.filter((id) => keep.has(id));
+      });
     } catch (e) {
       setModelResults([]);
+      setSelectedModelRowIds([]);
       setModelHint(e.message || "Search failed");
     } finally {
       setModelLoading(false);
@@ -159,6 +173,44 @@ export default function SalesSystemDashboardPage() {
   const totals12Parts = useMemo(() => {
     return monthly.reduce((sum, r) => sum + Number(r.partsPurchaseTotal || 0), 0);
   }, [monthly]);
+  const modelResultTotalAmount = useMemo(
+    () => modelResults.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+    [modelResults]
+  );
+  const modelResultTotalUnits = useMemo(
+    () => modelResults.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+    [modelResults]
+  );
+  const selectedModelRows = useMemo(() => {
+    if (!selectedModelRowIds.length) return [];
+    const sel = new Set(selectedModelRowIds);
+    return modelResults.filter((r) => sel.has(String(r._id)));
+  }, [modelResults, selectedModelRowIds]);
+  const selectedModelTotalAmount = useMemo(
+    () => selectedModelRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+    [selectedModelRows]
+  );
+  const selectedModelTotalUnits = useMemo(
+    () => selectedModelRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
+    [selectedModelRows]
+  );
+  const allModelRowsSelected = useMemo(
+    () => modelResults.length > 0 && selectedModelRowIds.length === modelResults.length,
+    [modelResults.length, selectedModelRowIds.length]
+  );
+  const toggleModelRowSelection = useCallback((id) => {
+    const sid = String(id);
+    setSelectedModelRowIds((prev) =>
+      prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]
+    );
+  }, []);
+  const toggleSelectAllModelRows = useCallback(() => {
+    setSelectedModelRowIds((prev) => {
+      if (modelResults.length === 0) return [];
+      if (prev.length === modelResults.length) return [];
+      return modelResults.map((r) => String(r._id));
+    });
+  }, [modelResults]);
 
   return (
     <div className="max-w-6xl">
@@ -243,11 +295,17 @@ export default function SalesSystemDashboardPage() {
               value={stockQuality}
               onChange={(e) => setStockQuality(e.target.value)}
               placeholder="Type any substring…"
+              list="dashboard-quality-suggestions"
               className="mt-1 w-full min-h-12 rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
               autoComplete="off"
             />
           </div>
         </div>
+        <datalist id="dashboard-quality-suggestions">
+          {qualitySuggestions.map((q) => (
+            <option key={q} value={q} />
+          ))}
+        </datalist>
 
         {stockHint ? <p className="mt-3 text-sm text-black/50">{stockHint}</p> : null}
         {stockLoading ? <p className="mt-3 text-sm text-black/50">Searching…</p> : null}
@@ -334,6 +392,7 @@ export default function SalesSystemDashboardPage() {
             onClick={() => {
               setModelSearch("");
               setModelResults([]);
+              setSelectedModelRowIds([]);
               setModelHint("Search model/folder names to see matching purchase entries.");
             }}
             className="text-xs font-semibold text-brand-dim hover:underline"
@@ -356,9 +415,32 @@ export default function SalesSystemDashboardPage() {
         {modelLoading ? <p className="mt-3 text-sm text-black/50">Searching…</p> : null}
         {!modelLoading && !modelHint ? (
           <div className="mt-4 overflow-x-auto rounded-xl border border-black/10">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold text-black/70">
+              <span>Matched lines: {modelResults.length}</span>
+              <span>
+                Total qty: {modelResultTotalUnits.toLocaleString("en-IN")} · Total amount: ₹
+                {modelResultTotalAmount.toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-white px-3 py-2 text-xs">
+              <label className="inline-flex cursor-pointer items-center gap-2 font-semibold text-black/70">
+                <input
+                  type="checkbox"
+                  checked={allModelRowsSelected}
+                  onChange={toggleSelectAllModelRows}
+                  className="h-4 w-4 rounded border-black/25"
+                />
+                Select all
+              </label>
+              <span className="font-semibold text-black/75">
+                Selected: {selectedModelRows.length} · Qty: {selectedModelTotalUnits.toLocaleString("en-IN")} · Amount: ₹
+                {selectedModelTotalAmount.toLocaleString("en-IN")}
+              </span>
+            </div>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-zinc-50 text-xs font-bold uppercase text-black/45">
                 <tr>
+                  <th className="px-3 py-2">Select</th>
                   <th className="px-3 py-2">Date</th>
                   <th className="px-3 py-2">Supplier</th>
                   <th className="px-3 py-2">Signature name</th>
@@ -372,6 +454,14 @@ export default function SalesSystemDashboardPage() {
               <tbody className="divide-y divide-black/5">
                 {modelResults.map((row) => (
                   <tr key={row._id}>
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedModelRowIds.includes(String(row._id))}
+                        onChange={() => toggleModelRowSelection(row._id)}
+                        className="h-4 w-4 rounded border-black/25"
+                      />
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap">{formatPurchaseDate(row.date)}</td>
                     <td className="px-3 py-2">{row.supplierName || "—"}</td>
                     <td className="px-3 py-2">{row.signatureName?.trim() ? row.signatureName : "—"}</td>

@@ -22,6 +22,7 @@ function newRow() {
     salesCategoryId: "",
     branch: "",
     modelQuery: "",
+    signatureQuery: "",
     stockGroupId: "",
     netStock: 0,
     quantity: 1,
@@ -57,6 +58,9 @@ export default function AdminSalesPage() {
   const [editItems, setEditItems] = useState([]);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [branchSuggestions, setBranchSuggestions] = useState([]);
+  const [modelSuggestions, setModelSuggestions] = useState([]);
+  const [signatureSuggestions, setSignatureSuggestions] = useState([]);
   const rowsRef = useRef(rows);
   rowsRef.current = rows;
 
@@ -73,6 +77,21 @@ export default function AdminSalesPage() {
   useEffect(() => {
     loadMaster().catch((e) => setError(e.message));
   }, [loadMaster]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/inventory/suggestions");
+        const json = await res.json();
+        if (!res.ok) return;
+        setBranchSuggestions(Array.isArray(json.branches) ? json.branches : []);
+        setModelSuggestions(Array.isArray(json.models) ? json.models : []);
+        setSignatureSuggestions(Array.isArray(json.signatures) ? json.signatures : []);
+      } catch {
+        /* ignore suggestion load failure */
+      }
+    })();
+  }, []);
 
   const grandTotal = useMemo(
     () =>
@@ -128,6 +147,7 @@ export default function AdminSalesPage() {
       p.set("salesCategoryId", row.salesCategoryId);
       if (row.branch.trim()) p.set("branch", row.branch.trim());
       if (row.modelQuery.trim()) p.set("q", row.modelQuery.trim());
+      if (row.signatureQuery?.trim()) p.set("signature", row.signatureQuery.trim());
       const res = await fetch(`/api/inventory/sale-stock-lines?${p.toString()}`);
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Failed to load lines");
@@ -430,7 +450,7 @@ export default function AdminSalesPage() {
           <p className="text-sm font-bold text-black">Line items</p>
           <p className="mt-1 text-xs text-black/50">
             Choose <strong>ledger category</strong>, type <strong>branch</strong> (e.g. Oppo), search <strong>model</strong>,
-            then select a line that has available qty from purchase entry.
+            optional <strong>signature</strong>, then select a line that has available qty from purchase entry.
           </p>
 
           <div className="mt-4 space-y-6">
@@ -467,6 +487,7 @@ export default function AdminSalesPage() {
                       value={row.branch}
                       onChange={(e) => updateRow(i, { branch: e.target.value, stockGroupId: "", netStock: 0 })}
                       placeholder="e.g. Oppo"
+                      list="sales-branch-suggestions"
                       className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
                     />
                   </div>
@@ -476,6 +497,17 @@ export default function AdminSalesPage() {
                       value={row.modelQuery}
                       onChange={(e) => updateRow(i, { modelQuery: e.target.value, stockGroupId: "", netStock: 0 })}
                       placeholder="e.g. a23"
+                      list="sales-model-suggestions"
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-black/45">Signature search</label>
+                    <input
+                      value={row.signatureQuery}
+                      onChange={(e) => updateRow(i, { signatureQuery: e.target.value, stockGroupId: "", netStock: 0 })}
+                      placeholder="e.g. realme 8i"
+                      list="sales-signature-suggestions"
                       className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
                     />
                   </div>
@@ -604,6 +636,22 @@ export default function AdminSalesPage() {
           </div>
         </div>
       </form>
+
+      <datalist id="sales-branch-suggestions">
+        {branchSuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
+      <datalist id="sales-model-suggestions">
+        {modelSuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
+      <datalist id="sales-signature-suggestions">
+        {signatureSuggestions.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-black">Sales history</h2>
