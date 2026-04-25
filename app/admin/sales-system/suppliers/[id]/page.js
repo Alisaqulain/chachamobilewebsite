@@ -61,7 +61,7 @@ async function cropImageToBlob(imageEl, crop) {
 }
 
 function clampCrop(crop, stageW, stageH) {
-  const minSize = 44;
+  const minSize = 20;
   const safeW = Math.max(minSize, Math.min(stageW, crop.w));
   const safeH = Math.max(minSize, Math.min(stageH, crop.h));
   const safeX = Math.max(0, Math.min(stageW - safeW, crop.x));
@@ -90,10 +90,11 @@ export default function SupplierPurchasesPage() {
     address: "",
   });
   const [savingProfile, setSavingProfile] = useState(false);
-  const modelCameraInputRef = useRef(null);
   const modelGalleryInputRef = useRef(null);
   const cropStageRef = useRef(null);
   const cropImageRef = useRef(null);
+  const liveCameraVideoRef = useRef(null);
+  const liveCameraStreamRef = useRef(null);
   const [modelOcrBusy, setModelOcrBusy] = useState(false);
   const [ocrImageUrl, setOcrImageUrl] = useState("");
   const [ocrImageFile, setOcrImageFile] = useState(null);
@@ -101,6 +102,9 @@ export default function SupplierPurchasesPage() {
   const [ocrSelection, setOcrSelection] = useState(null);
   const [ocrInteraction, setOcrInteraction] = useState(null);
   const [ocrZoomPreviewUrl, setOcrZoomPreviewUrl] = useState("");
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [cameraBusy, setCameraBusy] = useState(false);
+  const [cameraError, setCameraError] = useState("");
 
   const closeOcrCrop = useCallback(() => {
     setOcrImageUrl((prev) => {
@@ -112,6 +116,62 @@ export default function SupplierPurchasesPage() {
     setOcrSelection(null);
     setOcrInteraction(null);
     setOcrZoomPreviewUrl("");
+  }, []);
+
+  const stopLiveCamera = useCallback(() => {
+    const stream = liveCameraStreamRef.current;
+    if (stream) {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+      liveCameraStreamRef.current = null;
+    }
+    if (liveCameraVideoRef.current) {
+      liveCameraVideoRef.current.srcObject = null;
+    }
+    setCameraModalOpen(false);
+    setCameraBusy(false);
+    setCameraError("");
+  }, []);
+
+  const openLiveCamera = useCallback(async () => {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      setToast("Camera is not supported on this browser. Use Upload image.");
+      return;
+    }
+    setCameraBusy(true);
+    setCameraError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      liveCameraStreamRef.current = stream;
+      setCameraModalOpen(true);
+      requestAnimationFrame(() => {
+        const video = liveCameraVideoRef.current;
+        if (!video) return;
+        video.srcObject = stream;
+        void video.play().catch(() => {});
+      });
+    } catch (err) {
+      setCameraError("Camera permission blocked. Allow camera and retry, or use Upload image.");
+      setToast(err?.message || "Could not open camera");
+    } finally {
+      setCameraBusy(false);
+    }
+  }, []);
+
+  const beginCropForFile = useCallback((file) => {
+    const previewUrl = URL.createObjectURL(file);
+    setOcrImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return previewUrl;
+    });
+    setOcrImageFile(file);
+    setOcrSelection(null);
+    setOcrInteraction(null);
+    setOcrCropOpen(true);
   }, []);
 
   const runModelOcr = useCallback(async (imageSource) => {
@@ -152,16 +212,39 @@ export default function SupplierPurchasesPage() {
       setToast("Choose an image file");
       return;
     }
-    const previewUrl = URL.createObjectURL(file);
-    setOcrImageUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return previewUrl;
+    beginCropForFile(file);
+  }, [beginCropForFile]);
+
+  const captureFromLiveCamera = useCallback(async () => {
+    const video = liveCameraVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setToast("Camera not ready yet");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setToast("Could not capture photo");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => {
+      canvas.toBlob((b) => resolve(b || null), "image/jpeg", 0.95);
     });
-    setOcrImageFile(file);
-    setOcrSelection(null);
-    setOcrInteraction(null);
-    setOcrCropOpen(true);
-  }, []);
+    if (!blob) {
+      setToast("Could not capture photo");
+      return;
+    }
+    const photo = new File([blob], `camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+    stopLiveCamera();
+    beginCropForFile(photo);
+  }, [beginCropForFile, stopLiveCamera]);
+
+  useEffect(() => {
+    return () => stopLiveCamera();
+  }, [stopLiveCamera]);
 
   useEffect(() => {
     if (!ocrCropOpen || !ocrSelection || !cropImageRef.current) {
@@ -210,13 +293,13 @@ export default function SupplierPurchasesPage() {
     setOcrSelection((prev) => (prev ? clampCrop(prev, rect.width, rect.height) : clampCrop(next, rect.width, rect.height)));
   }, [getStageRect]);
 
-  const onCropPointerMove = useCallback(
-    (e) => {
+  const updateCropDuringInteraction = useCallback(
+    (clientX, clientY) => {
       if (!ocrInteraction) return;
       const rect = getStageRect();
       if (!rect) return;
-      const px = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
-      const py = Math.min(rect.height, Math.max(0, e.clientY - rect.top));
+      const px = Math.min(rect.width, Math.max(0, clientX - rect.left));
+      const py = Math.min(rect.height, Math.max(0, clientY - rect.top));
       const dx = px - ocrInteraction.startX;
       const dy = py - ocrInteraction.startY;
       const base = ocrInteraction.origin;
@@ -232,6 +315,14 @@ export default function SupplierPurchasesPage() {
         next = { x: base.x + dx, y: base.y, w: base.w - dx, h: base.h + dy };
       } else if (ocrInteraction.type === "resize-se") {
         next = { x: base.x, y: base.y, w: base.w + dx, h: base.h + dy };
+      } else if (ocrInteraction.type === "resize-n") {
+        next = { x: base.x, y: base.y + dy, w: base.w, h: base.h - dy };
+      } else if (ocrInteraction.type === "resize-s") {
+        next = { x: base.x, y: base.y, w: base.w, h: base.h + dy };
+      } else if (ocrInteraction.type === "resize-w") {
+        next = { x: base.x + dx, y: base.y, w: base.w - dx, h: base.h };
+      } else if (ocrInteraction.type === "resize-e") {
+        next = { x: base.x, y: base.y, w: base.w + dx, h: base.h };
       }
 
       setOcrSelection(clampCrop(next, rect.width, rect.height));
@@ -239,10 +330,19 @@ export default function SupplierPurchasesPage() {
     [getStageRect, ocrInteraction]
   );
 
-  const onCropPointerEnd = useCallback((e) => {
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    setOcrInteraction(null);
-  }, []);
+  useEffect(() => {
+    if (!ocrInteraction) return;
+    const onMove = (e) => updateCropDuringInteraction(e.clientX, e.clientY);
+    const onEnd = () => setOcrInteraction(null);
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerup", onEnd, { passive: true });
+    window.addEventListener("pointercancel", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+    };
+  }, [ocrInteraction, updateCropDuringInteraction]);
 
   const startCropInteraction = useCallback(
     (e, type) => {
@@ -252,7 +352,6 @@ export default function SupplierPurchasesPage() {
       const px = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
       const py = Math.min(rect.height, Math.max(0, e.clientY - rect.top));
       e.stopPropagation();
-      e.currentTarget.setPointerCapture?.(e.pointerId);
       setOcrInteraction({
         type,
         startX: px,
@@ -659,11 +758,11 @@ export default function SupplierPurchasesPage() {
             <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:justify-stretch">
               <button
                 type="button"
-                disabled={modelOcrBusy || saving}
-                onClick={() => modelCameraInputRef.current?.click()}
+                disabled={modelOcrBusy || saving || cameraBusy}
+                onClick={openLiveCamera}
                 className="min-h-12 rounded-lg border border-black/20 bg-zinc-50 px-3 text-xs font-bold text-black disabled:opacity-50 sm:min-w-[7.5rem]"
               >
-                {modelOcrBusy ? "Reading…" : "Take photo"}
+                {cameraBusy ? "Opening…" : modelOcrBusy ? "Reading…" : "Take photo"}
               </button>
               <button
                 type="button"
@@ -675,14 +774,6 @@ export default function SupplierPurchasesPage() {
               </button>
             </div>
           </div>
-          <input
-            ref={modelCameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onModelPhotoOcr}
-          />
           <input
             ref={modelGalleryInputRef}
             type="file"
@@ -757,6 +848,37 @@ export default function SupplierPurchasesPage() {
         </div>
       </form>
 
+      {cameraModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 sm:items-center">
+          <div className="w-full max-w-md rounded-xl bg-white p-4 shadow-xl">
+            <h3 className="text-base font-bold text-black">Take label photo</h3>
+            <p className="mt-1 text-xs text-black/60">
+              Capture inside browser to avoid page redirect in mobile private/incognito mode.
+            </p>
+            <div className="mt-3 overflow-hidden rounded-lg border border-black/15 bg-black">
+              <video ref={liveCameraVideoRef} playsInline muted className="h-auto max-h-[60vh] w-full object-contain" />
+            </div>
+            {cameraError ? <p className="mt-2 text-xs text-red-600">{cameraError}</p> : null}
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={stopLiveCamera}
+                className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-semibold text-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={captureFromLiveCamera}
+                className="min-h-11 rounded-lg bg-black px-4 text-sm font-bold text-brand"
+              >
+                Capture photo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {ocrCropOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center">
           <div className="w-full max-w-3xl rounded-xl bg-white p-4 shadow-xl">
@@ -777,9 +899,6 @@ export default function SupplierPurchasesPage() {
             <div
               ref={cropStageRef}
               className="relative mt-3 max-h-[60vh] touch-none overflow-hidden rounded-lg border border-black/15 bg-zinc-100"
-              onPointerMove={onCropPointerMove}
-              onPointerUp={onCropPointerEnd}
-              onPointerCancel={onCropPointerEnd}
             >
               <img
                 ref={cropImageRef}
@@ -816,29 +935,57 @@ export default function SupplierPurchasesPage() {
                     type="button"
                     aria-label="Resize crop top left"
                     onPointerDown={(e) => startCropInteraction(e, "resize-nw")}
-                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
-                    style={{ left: `${ocrSelection.x - 8}px`, top: `${ocrSelection.y - 8}px` }}
+                    className="absolute h-5 w-5 touch-none rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x - 10}px`, top: `${ocrSelection.y - 10}px` }}
                   />
                   <button
                     type="button"
                     aria-label="Resize crop top right"
                     onPointerDown={(e) => startCropInteraction(e, "resize-ne")}
-                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
-                    style={{ left: `${ocrSelection.x + ocrSelection.w - 8}px`, top: `${ocrSelection.y - 8}px` }}
+                    className="absolute h-5 w-5 touch-none rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w - 10}px`, top: `${ocrSelection.y - 10}px` }}
                   />
                   <button
                     type="button"
                     aria-label="Resize crop bottom left"
                     onPointerDown={(e) => startCropInteraction(e, "resize-sw")}
-                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
-                    style={{ left: `${ocrSelection.x - 8}px`, top: `${ocrSelection.y + ocrSelection.h - 8}px` }}
+                    className="absolute h-5 w-5 touch-none rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x - 10}px`, top: `${ocrSelection.y + ocrSelection.h - 10}px` }}
                   />
                   <button
                     type="button"
                     aria-label="Resize crop bottom right"
                     onPointerDown={(e) => startCropInteraction(e, "resize-se")}
-                    className="absolute h-4 w-4 rounded-full border-2 border-brand bg-white"
-                    style={{ left: `${ocrSelection.x + ocrSelection.w - 8}px`, top: `${ocrSelection.y + ocrSelection.h - 8}px` }}
+                    className="absolute h-5 w-5 touch-none rounded-full border-2 border-brand bg-white"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w - 10}px`, top: `${ocrSelection.y + ocrSelection.h - 10}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop top"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-n")}
+                    className="absolute h-4 w-8 -translate-x-1/2 touch-none rounded-full border-2 border-brand bg-white/95"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w / 2}px`, top: `${ocrSelection.y - 8}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop right"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-e")}
+                    className="absolute h-8 w-4 -translate-y-1/2 touch-none rounded-full border-2 border-brand bg-white/95"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w - 8}px`, top: `${ocrSelection.y + ocrSelection.h / 2}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop bottom"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-s")}
+                    className="absolute h-4 w-8 -translate-x-1/2 touch-none rounded-full border-2 border-brand bg-white/95"
+                    style={{ left: `${ocrSelection.x + ocrSelection.w / 2}px`, top: `${ocrSelection.y + ocrSelection.h - 8}px` }}
+                  />
+                  <button
+                    type="button"
+                    aria-label="Resize crop left"
+                    onPointerDown={(e) => startCropInteraction(e, "resize-w")}
+                    className="absolute h-8 w-4 -translate-y-1/2 touch-none rounded-full border-2 border-brand bg-white/95"
+                    style={{ left: `${ocrSelection.x - 8}px`, top: `${ocrSelection.y + ocrSelection.h / 2}px` }}
                   />
                 </>
               ) : null}
