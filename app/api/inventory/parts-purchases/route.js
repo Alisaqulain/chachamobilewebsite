@@ -4,6 +4,7 @@ import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import PartsPurchase from "@/models/PartsPurchase";
 import PartsPurchaseReturn from "@/models/PartsPurchaseReturn";
+import InventoryStockGroup from "@/models/InventoryStockGroup";
 import SalesCategory from "@/models/SalesCategory";
 import Supplier from "@/models/Supplier";
 import {
@@ -38,7 +39,7 @@ function normalizeAliasText(s) {
   return out.join(", ");
 }
 
-function serialize(p, scMap, supplierName, returnedQty = 0) {
+function serialize(p, scMap, supplierName, returnedQty = 0, currentStock = null) {
   const sc = p.salesCategoryId ? scMap.get(String(p.salesCategoryId)) : null;
   const purchased = Number(p.quantity);
   const returned = Number(returnedQty || 0);
@@ -56,6 +57,7 @@ function serialize(p, scMap, supplierName, returnedQty = 0) {
     quantity: purchased,
     returnedQty: returned,
     returnableQty: Math.max(0, purchased - returned),
+    currentStock: currentStock == null ? null : Number(currentStock),
     purchasePrice: Number(p.purchasePrice),
     gstAmount: Number(p.gstAmount ?? 0),
     signatureName: p.signatureName || "",
@@ -115,19 +117,35 @@ export async function GET(request) {
     }
     const scIds = [...new Set(rows.map((r) => String(r.salesCategoryId)))];
     const supIds = [...new Set(rows.map((r) => String(r.supplierId)))];
-    const [cats, sups] = await Promise.all([
+    const stockGroupIds = [...new Set(rows.map((r) => String(r.stockGroupId)).filter((x) => mongoose.Types.ObjectId.isValid(x)))];
+    const [cats, sups, groups] = await Promise.all([
       SalesCategory.find({ _id: { $in: scIds } })
         .select("name")
         .lean(),
       Supplier.find({ _id: { $in: supIds } })
         .select("name")
         .lean(),
+      InventoryStockGroup.find({ _id: { $in: stockGroupIds } })
+        .select("purchasedQty returnedQty soldQty")
+        .lean(),
     ]);
     const scMap = new Map(cats.map((c) => [String(c._id), c]));
     const supMap = new Map(sups.map((s) => [String(s._id), s.name]));
+    const stockMap = new Map(
+      groups.map((g) => [
+        String(g._id),
+        Number(g.purchasedQty || 0) - Number(g.returnedQty || 0) - Number(g.soldQty || 0),
+      ])
+    );
     return NextResponse.json({
       purchases: rows.map((r) =>
-        serialize(r, scMap, supMap.get(String(r.supplierId)) || "", returnedMap.get(String(r._id)) || 0)
+        serialize(
+          r,
+          scMap,
+          supMap.get(String(r.supplierId)) || "",
+          returnedMap.get(String(r._id)) || 0,
+          stockMap.get(String(r.stockGroupId)) ?? null
+        )
       ),
     });
   } catch (e) {

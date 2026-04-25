@@ -6,6 +6,7 @@ import Supplier from "@/models/Supplier";
 import SalesCategory from "@/models/SalesCategory";
 import PartsPurchase from "@/models/PartsPurchase";
 import PartsPurchaseReturn from "@/models/PartsPurchaseReturn";
+import Sale from "@/models/Sale";
 import { netStock } from "@/lib/partsInventory";
 
 const LOW = 5;
@@ -49,6 +50,7 @@ export async function GET() {
       recentPurchaseLines,
       recentReturnLines,
       partsByMonth,
+      salesByMonth,
       purchasedStockGroupIds,
     ] = await Promise.all([
       InventoryStockGroup.find().lean(),
@@ -98,22 +100,38 @@ export async function GET() {
         },
         { $sort: { _id: 1 } },
       ]),
+      Sale.aggregate([
+        { $match: { date: { $gte: twelveMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
+            amount: { $sum: "$totalAmount" },
+            lines: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
       PartsPurchase.distinct("stockGroupId"),
     ]);
 
     const monthKeys = rollingMonthKeys(12);
     const pm = new Map(partsByMonth.map((x) => [x._id, x]));
+    const sm = new Map(salesByMonth.map((x) => [x._id, x]));
     const monthlyOverview = monthKeys.map((month) => ({
       month,
       partsPurchaseTotal: Number(pm.get(month)?.amount || 0),
       partsLines: Number(pm.get(month)?.lines || 0),
       partsUnits: Number(pm.get(month)?.units || 0),
+      salesTotal: Number(sm.get(month)?.amount || 0),
+      salesEntries: Number(sm.get(month)?.lines || 0),
     }));
     const cur = monthlyOverview[monthlyOverview.length - 1];
     const monthHighlights = {
       month: cur?.month || monthKeys[monthKeys.length - 1],
       partsPurchaseTotal: cur?.partsPurchaseTotal ?? 0,
       partsLines: cur?.partsLines ?? 0,
+      salesTotal: cur?.salesTotal ?? 0,
+      salesEntries: cur?.salesEntries ?? 0,
     };
 
     const purchasedGroupSet = new Set((purchasedStockGroupIds || []).filter(Boolean).map((id) => String(id)));

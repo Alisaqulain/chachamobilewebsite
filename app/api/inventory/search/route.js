@@ -91,9 +91,18 @@ export async function GET(request) {
             { $group: { _id: "$stockGroupId", lastPurchaseDate: { $max: "$date" } } },
           ])
         : [];
+    const lastRateAgg =
+      groupIds.length > 0
+        ? await PartsPurchase.aggregate([
+            { $match: { stockGroupId: { $in: groupIds } } },
+            { $sort: { date: -1, createdAt: -1 } },
+            { $group: { _id: "$stockGroupId", lastUnitPrice: { $first: "$purchasePrice" } } },
+          ])
+        : [];
     const lastPurchaseByGroup = new Map(
       lastDates.map((x) => [String(x._id), x.lastPurchaseDate ? new Date(x.lastPurchaseDate).toISOString() : null])
     );
+    const lastRateByGroup = new Map(lastRateAgg.map((x) => [String(x._id), Number(x.lastUnitPrice || 0)]));
 
     const grouped = new Map();
     for (const g of matched) {
@@ -105,6 +114,8 @@ export async function GET(request) {
       grouped.get(label).push({
         quality: g.quality,
         netStock: netStock(g),
+        lastUnitPrice: lastRateByGroup.get(String(g._id)) || 0,
+        stockAmount: Math.max(0, netStock(g)) * (lastRateByGroup.get(String(g._id)) || 0),
         salesCategoryName: catMap.get(String(g.salesCategoryId)) || "",
         salesCategoryId: String(g.salesCategoryId),
         stockGroupId: String(g._id),

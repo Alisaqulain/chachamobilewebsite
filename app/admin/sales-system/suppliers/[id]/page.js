@@ -631,6 +631,7 @@ export default function SupplierPurchasesPage() {
       { header: "Quality", key: "quality", width: 12 },
       { header: "Signature name", key: "signatureName", width: 18 },
       { header: "Qty", key: "qty", width: 8 },
+      { header: "Current stock", key: "currentStock", width: 12 },
       { header: "Price", key: "price", width: 12 },
       { header: "Total", key: "total", width: 12 },
     ],
@@ -647,6 +648,7 @@ export default function SupplierPurchasesPage() {
         quality: row.quality || "—",
         signatureName: row.signatureName?.trim() ? row.signatureName : "—",
         qty: String(row.quantity ?? ""),
+        currentStock: String(row.currentStock ?? "—"),
         price: `₹${Number(row.purchasePrice || 0).toLocaleString("en-IN")}`,
         total: `₹${Number(row.lineTotal || 0).toLocaleString("en-IN")}`,
       })),
@@ -1411,6 +1413,7 @@ export default function SupplierPurchasesPage() {
                 <th className="px-3 py-2">Quality</th>
                 <th className="px-3 py-2">Signature name</th>
                 <th className="px-3 py-2">Qty</th>
+                <th className="px-3 py-2">Current stock</th>
                 <th className="px-3 py-2">Price</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2 text-right">Actions</th>
@@ -1435,6 +1438,9 @@ export default function SupplierPurchasesPage() {
                   <td className="px-3 py-2">{row.quality}</td>
                   <td className="px-3 py-2 text-black/80">{row.signatureName?.trim() ? row.signatureName : "—"}</td>
                   <td className="px-3 py-2">{row.quantity}</td>
+                  <td className="px-3 py-2 font-semibold text-emerald-700">
+                    {row.currentStock == null ? "—" : row.currentStock}
+                  </td>
                   <td className="px-3 py-2">₹{Number(row.purchasePrice).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2 font-semibold">₹{Number(row.lineTotal).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2 text-right">

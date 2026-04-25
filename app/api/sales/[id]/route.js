@@ -213,7 +213,7 @@ export async function PUT(request, context) {
           shopDeltas.map((row) => ({
             productId: row.productId,
             delta: -row.diff,
-            reason: "sale_edit",
+            reason: "manual",
             refModel: "Sale",
             refId: prev._id,
             note: "Sale edited",
@@ -295,11 +295,21 @@ export async function DELETE(request, context) {
 
     const shopLines = (prev.products || []).filter((r) => r.productId);
     if (shopLines.length) {
+      const requestedIds = [
+        ...new Set(
+          shopLines
+            .map((r) => String(r.productId || ""))
+            .filter((x) => mongoose.Types.ObjectId.isValid(x))
+        ),
+      ];
+      const existingProducts = await Product.find({ _id: { $in: requestedIds } }).select("_id").lean();
+      const existingIdSet = new Set(existingProducts.map((p) => String(p._id)));
+      const restorableShopLines = shopLines.filter((r) => existingIdSet.has(String(r.productId)));
       await applyStockDeltas(
-        shopLines.map((r) => ({
+        restorableShopLines.map((r) => ({
           productId: r.productId,
           delta: Number(r.quantity || 0),
-          reason: "sale_delete",
+          reason: "sale_return",
           refModel: "Sale",
           refId: prev._id,
           note: "Sale deleted — stock restored",

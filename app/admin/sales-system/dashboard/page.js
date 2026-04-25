@@ -54,16 +54,11 @@ export default function SalesSystemDashboardPage() {
   const [stockSalesCategoryId, setStockSalesCategoryId] = useState("");
   const [stockQuality, setStockQuality] = useState("");
   const [partsStockResults, setPartsStockResults] = useState([]);
+  const [selectedStockRowIds, setSelectedStockRowIds] = useState([]);
   const [stockLoading, setStockLoading] = useState(false);
   const [stockHint, setStockHint] = useState(
     "Search matches folder, model, quality, and each line’s signature name (set on the supplier purchase form)."
   );
-  const [modelSearch, setModelSearch] = useState("");
-  const modelSearchDebounced = useDebounced(modelSearch, 320);
-  const [modelResults, setModelResults] = useState([]);
-  const [selectedModelRowIds, setSelectedModelRowIds] = useState([]);
-  const [modelLoading, setModelLoading] = useState(false);
-  const [modelHint, setModelHint] = useState("Search model/folder names to see matching purchase entries.");
 
   const load = useCallback(async () => {
     setError("");
@@ -132,39 +127,60 @@ export default function SalesSystemDashboardPage() {
     void runStockLookup();
   }, [runStockLookup]);
 
-  const runModelLookup = useCallback(async () => {
-    const q = modelSearchDebounced.trim();
-    if (q.length < 1) {
-      setModelResults([]);
-      setSelectedModelRowIds([]);
-      setModelHint("Search model/folder names to see matching purchase entries.");
-      return;
+  const flattenedStockRows = useMemo(() => {
+    const out = [];
+    for (const block of partsStockResults || []) {
+      for (const row of block.qualities || []) {
+        out.push({
+          label: block.label,
+          ...row,
+        });
+      }
     }
-    setModelHint("");
-    setModelLoading(true);
-    try {
-      const params = new URLSearchParams({ q });
-      const res = await fetch(`/api/inventory/parts-purchases?${params.toString()}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Model search failed");
-      const rows = Array.isArray(json.purchases) ? json.purchases : [];
-      setModelResults(rows);
-      setSelectedModelRowIds((prev) => {
-        const keep = new Set(rows.map((r) => String(r._id)));
-        return prev.filter((id) => keep.has(id));
-      });
-    } catch (e) {
-      setModelResults([]);
-      setSelectedModelRowIds([]);
-      setModelHint(e.message || "Search failed");
-    } finally {
-      setModelLoading(false);
-    }
-  }, [modelSearchDebounced]);
+    return out;
+  }, [partsStockResults]);
 
   useEffect(() => {
-    void runModelLookup();
-  }, [runModelLookup]);
+    const allowed = new Set(flattenedStockRows.map((r) => String(r.stockGroupId)));
+    setSelectedStockRowIds((prev) => prev.filter((id) => allowed.has(id)));
+  }, [flattenedStockRows]);
+
+  const allStockRowsSelected = useMemo(
+    () => flattenedStockRows.length > 0 && selectedStockRowIds.length === flattenedStockRows.length,
+    [flattenedStockRows.length, selectedStockRowIds.length]
+  );
+  const selectedStockRows = useMemo(() => {
+    if (!selectedStockRowIds.length) return [];
+    const selectedSet = new Set(selectedStockRowIds);
+    return flattenedStockRows.filter((row) => selectedSet.has(String(row.stockGroupId)));
+  }, [flattenedStockRows, selectedStockRowIds]);
+  const stockAllQty = useMemo(
+    () => flattenedStockRows.reduce((sum, row) => sum + Number(row.netStock || 0), 0),
+    [flattenedStockRows]
+  );
+  const stockAllAmount = useMemo(
+    () => flattenedStockRows.reduce((sum, row) => sum + Number(row.stockAmount || 0), 0),
+    [flattenedStockRows]
+  );
+  const stockSelectedQty = useMemo(
+    () => selectedStockRows.reduce((sum, row) => sum + Number(row.netStock || 0), 0),
+    [selectedStockRows]
+  );
+  const stockSelectedAmount = useMemo(
+    () => selectedStockRows.reduce((sum, row) => sum + Number(row.stockAmount || 0), 0),
+    [selectedStockRows]
+  );
+  const toggleStockSelection = useCallback((stockGroupId) => {
+    const id = String(stockGroupId);
+    setSelectedStockRowIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+  const toggleSelectAllStockRows = useCallback(() => {
+    setSelectedStockRowIds((prev) => {
+      if (flattenedStockRows.length === 0) return [];
+      if (prev.length === flattenedStockRows.length) return [];
+      return flattenedStockRows.map((row) => String(row.stockGroupId));
+    });
+  }, [flattenedStockRows]);
 
   const mh = invStats?.monthHighlights;
   const monthly = invStats?.monthlyOverview ?? [];
@@ -173,44 +189,9 @@ export default function SalesSystemDashboardPage() {
   const totals12Parts = useMemo(() => {
     return monthly.reduce((sum, r) => sum + Number(r.partsPurchaseTotal || 0), 0);
   }, [monthly]);
-  const modelResultTotalAmount = useMemo(
-    () => modelResults.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
-    [modelResults]
-  );
-  const modelResultTotalUnits = useMemo(
-    () => modelResults.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
-    [modelResults]
-  );
-  const selectedModelRows = useMemo(() => {
-    if (!selectedModelRowIds.length) return [];
-    const sel = new Set(selectedModelRowIds);
-    return modelResults.filter((r) => sel.has(String(r._id)));
-  }, [modelResults, selectedModelRowIds]);
-  const selectedModelTotalAmount = useMemo(
-    () => selectedModelRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
-    [selectedModelRows]
-  );
-  const selectedModelTotalUnits = useMemo(
-    () => selectedModelRows.reduce((sum, row) => sum + Number(row.quantity || 0), 0),
-    [selectedModelRows]
-  );
-  const allModelRowsSelected = useMemo(
-    () => modelResults.length > 0 && selectedModelRowIds.length === modelResults.length,
-    [modelResults.length, selectedModelRowIds.length]
-  );
-  const toggleModelRowSelection = useCallback((id) => {
-    const sid = String(id);
-    setSelectedModelRowIds((prev) =>
-      prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]
-    );
-  }, []);
-  const toggleSelectAllModelRows = useCallback(() => {
-    setSelectedModelRowIds((prev) => {
-      if (modelResults.length === 0) return [];
-      if (prev.length === modelResults.length) return [];
-      return modelResults.map((r) => String(r._id));
-    });
-  }, [modelResults]);
+  const totals12Sales = useMemo(() => {
+    return monthly.reduce((sum, r) => sum + Number(r.salesTotal || 0), 0);
+  }, [monthly]);
 
   return (
     <div className="max-w-6xl">
@@ -242,7 +223,7 @@ export default function SalesSystemDashboardPage() {
             <h2 className="text-base font-bold text-black">Stock check</h2>
             <p className="text-xs text-black/55">
               Only lines that exist on a <strong>supplier purchase</strong> (not shop catalogue). Green = in stock, red =
-              zero.
+              zero. Search is case-insensitive (e.g. <strong>oppo</strong>, <strong>OpPo</strong>, <strong>OPPO</strong> are same).
             </p>
           </div>
           <button
@@ -252,6 +233,7 @@ export default function SalesSystemDashboardPage() {
               setStockSalesCategoryId("");
               setStockQuality("");
               setPartsStockResults([]);
+              setSelectedStockRowIds([]);
               setStockHint(
                 "Search matches folder, model, quality, and each line’s signature name (set on the supplier purchase form)."
               );
@@ -314,6 +296,29 @@ export default function SalesSystemDashboardPage() {
           <div className="mt-5 rounded-xl border border-black/10 bg-white/80 p-4">
             <h3 className="text-sm font-bold text-black">Parts ledger</h3>
             <p className="text-[11px] text-black/45">Net stock from purchases, returns, and linked sales.</p>
+            {flattenedStockRows.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-black/10 bg-zinc-50/70 p-2.5 text-xs text-black/70">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={allStockRowsSelected}
+                      onChange={toggleSelectAllStockRows}
+                      className="h-4 w-4 rounded border-black/25"
+                    />
+                    Select all
+                  </label>
+                  <span>
+                    All: {flattenedStockRows.length} lines · Qty: {stockAllQty.toLocaleString("en-IN")} · Amount: ₹
+                    {stockAllAmount.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="mt-1.5 font-semibold text-black/80">
+                  Selected: {selectedStockRows.length} · Qty: {stockSelectedQty.toLocaleString("en-IN")} · Amount: ₹
+                  {stockSelectedAmount.toLocaleString("en-IN")}
+                </div>
+              </div>
+            ) : null}
             {partsStockResults.length === 0 ? (
               <p className="mt-3 text-sm text-black/50">No matching parts lines.</p>
             ) : (
@@ -331,11 +336,22 @@ export default function SalesSystemDashboardPage() {
                             className="flex flex-wrap items-center justify-between gap-2 border-b border-black/5 pb-1.5 last:border-0 last:pb-0"
                           >
                             <div className="min-w-0 flex-1">
+                              <label className="inline-flex cursor-pointer items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStockRowIds.includes(String(row.stockGroupId))}
+                                  onChange={() => toggleStockSelection(row.stockGroupId)}
+                                  className="h-4 w-4 rounded border-black/25"
+                                />
+                                <span className="font-semibold text-black">{row.quality}</span>
+                              </label>
+                              <p className="mt-0.5 text-[11px] text-black/45">
+                                {row.salesCategoryName || "—"} · folder: {row.folderName || "—"} · approx value: ₹
+                                {Number(row.stockAmount || 0).toLocaleString("en-IN")}
+                              </p>
                               <span>
-                                {row.quality}
                                 <span className="text-black/45">
-                                  {" "}
-                                  · {row.salesCategoryName || "—"} · folder: {row.folderName || "—"}
+                                  Last unit rate: ₹{Number(row.lastUnitPrice || 0).toLocaleString("en-IN")}
                                 </span>
                               </span>
                               <p className="mt-1 text-[11px] text-black/50">
@@ -379,118 +395,21 @@ export default function SalesSystemDashboardPage() {
         ) : null}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-black">Model search</h2>
-            <p className="text-xs text-black/55">
-              Example: search <strong>oppo</strong> to show all entries related to oppo.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setModelSearch("");
-              setModelResults([]);
-              setSelectedModelRowIds([]);
-              setModelHint("Search model/folder names to see matching purchase entries.");
-            }}
-            className="text-xs font-semibold text-brand-dim hover:underline"
-          >
-            Clear
-          </button>
-        </div>
-        <div className="mt-3 max-w-md">
-          <label className="text-xs font-bold uppercase text-black/45">Search model / folder</label>
-          <input
-            type="search"
-            value={modelSearch}
-            onChange={(e) => setModelSearch(e.target.value)}
-            placeholder="e.g. oppo, realme, reno 12"
-            className="mt-1 w-full min-h-12 rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-brand"
-            autoComplete="off"
-          />
-        </div>
-        {modelHint ? <p className="mt-3 text-sm text-black/50">{modelHint}</p> : null}
-        {modelLoading ? <p className="mt-3 text-sm text-black/50">Searching…</p> : null}
-        {!modelLoading && !modelHint ? (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-black/10">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-zinc-50 px-3 py-2 text-xs font-semibold text-black/70">
-              <span>Matched lines: {modelResults.length}</span>
-              <span>
-                Total qty: {modelResultTotalUnits.toLocaleString("en-IN")} · Total amount: ₹
-                {modelResultTotalAmount.toLocaleString("en-IN")}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 bg-white px-3 py-2 text-xs">
-              <label className="inline-flex cursor-pointer items-center gap-2 font-semibold text-black/70">
-                <input
-                  type="checkbox"
-                  checked={allModelRowsSelected}
-                  onChange={toggleSelectAllModelRows}
-                  className="h-4 w-4 rounded border-black/25"
-                />
-                Select all
-              </label>
-              <span className="font-semibold text-black/75">
-                Selected: {selectedModelRows.length} · Qty: {selectedModelTotalUnits.toLocaleString("en-IN")} · Amount: ₹
-                {selectedModelTotalAmount.toLocaleString("en-IN")}
-              </span>
-            </div>
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs font-bold uppercase text-black/45">
-                <tr>
-                  <th className="px-3 py-2">Select</th>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Supplier</th>
-                  <th className="px-3 py-2">Signature name</th>
-                  <th className="px-3 py-2">Folder</th>
-                  <th className="px-3 py-2">Model / product</th>
-                  <th className="px-3 py-2">Quality</th>
-                  <th className="px-3 py-2">Qty</th>
-                  <th className="px-3 py-2">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5">
-                {modelResults.map((row) => (
-                  <tr key={row._id}>
-                    <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedModelRowIds.includes(String(row._id))}
-                        onChange={() => toggleModelRowSelection(row._id)}
-                        className="h-4 w-4 rounded border-black/25"
-                      />
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatPurchaseDate(row.date)}</td>
-                    <td className="px-3 py-2">{row.supplierName || "—"}</td>
-                    <td className="px-3 py-2">{row.signatureName?.trim() ? row.signatureName : "—"}</td>
-                    <td className="px-3 py-2">{row.mobileName || "—"}</td>
-                    <td className="px-3 py-2 font-medium">{row.productName || "—"}</td>
-                    <td className="px-3 py-2">{row.quality || "—"}</td>
-                    <td className="px-3 py-2 tabular-nums">{Number(row.quantity || 0)}</td>
-                    <td className="px-3 py-2 font-semibold">
-                      ₹{Number(row.lineTotal || 0).toLocaleString("en-IN")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {modelResults.length === 0 ? (
-              <p className="p-6 text-center text-sm text-black/50">No matching entries.</p>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-
       {/* This month */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-blue-900/70">Parts purchased (this month)</p>
           <p className="mt-2 text-2xl font-black text-blue-950">
             ₹{Number(mh?.partsPurchaseTotal ?? 0).toLocaleString("en-IN")}
           </p>
           <p className="mt-1 text-xs text-blue-900/65">{mh?.month ? formatMonthKey(mh.month) : "—"} · {mh?.partsLines ?? 0} lines</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-900/70">Sales (this month)</p>
+          <p className="mt-2 text-2xl font-black text-emerald-950">
+            ₹{Number(mh?.salesTotal ?? 0).toLocaleString("en-IN")}
+          </p>
+          <p className="mt-1 text-xs text-emerald-900/65">{mh?.month ? formatMonthKey(mh.month) : "—"} · {mh?.salesEntries ?? 0} entries</p>
         </div>
         <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-black/45">Parts stock (net units)</p>
@@ -510,7 +429,8 @@ export default function SalesSystemDashboardPage() {
       <section className="mt-10 rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-bold text-black">Last 12 months</h2>
         <p className="mt-1 text-xs text-black/50">
-          Supplier purchase lines (₹). Rolling 12 months: <strong>₹{totals12Parts.toLocaleString("en-IN")}</strong>.
+          Purchase and sales trend. Rolling 12 months: purchases <strong>₹{totals12Parts.toLocaleString("en-IN")}</strong>
+          {" · "}sales <strong>₹{totals12Sales.toLocaleString("en-IN")}</strong>.
         </p>
         <div className="mt-4 overflow-x-auto rounded-xl border border-black/10">
           <table className="min-w-full text-left text-sm">
@@ -518,7 +438,9 @@ export default function SalesSystemDashboardPage() {
               <tr>
                 <th className="px-3 py-2">Month</th>
                 <th className="px-3 py-2">Parts purchased ₹</th>
+                <th className="px-3 py-2">Sales ₹</th>
                 <th className="px-3 py-2">Lines</th>
+                <th className="px-3 py-2">Sales entries</th>
                 <th className="px-3 py-2">Units in</th>
               </tr>
             </thead>
@@ -527,7 +449,9 @@ export default function SalesSystemDashboardPage() {
                 <tr key={row.month} className={row.month === mh?.month ? "bg-brand/10" : ""}>
                   <td className="px-3 py-2 font-medium text-black">{formatMonthKey(row.month)}</td>
                   <td className="px-3 py-2 tabular-nums">₹{Number(row.partsPurchaseTotal || 0).toLocaleString("en-IN")}</td>
+                  <td className="px-3 py-2 tabular-nums">₹{Number(row.salesTotal || 0).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2 tabular-nums">{row.partsLines}</td>
+                  <td className="px-3 py-2 tabular-nums">{row.salesEntries}</td>
                   <td className="px-3 py-2 tabular-nums">{row.partsUnits}</td>
                 </tr>
               ))}

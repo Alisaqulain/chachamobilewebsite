@@ -4,9 +4,10 @@ import connectDB from "@/lib/mongodb";
 import { getAdminFromCookies } from "@/lib/auth";
 import Sale from "@/models/Sale";
 import Customer from "@/models/Customer";
+import Product from "@/models/Product";
 import InventoryStockGroup from "@/models/InventoryStockGroup";
 import { applyStockDeltas, getProductsMapByIds } from "@/lib/stock";
-import { incrementSoldQtyForSaleLineItems, netStock } from "@/lib/partsInventory";
+import { incrementSoldQtyForSaleLineItems, netStock, revertSoldQtyForSaleLineItems } from "@/lib/partsInventory";
 
 function lineTotal(row) {
   return Number(row.quantity || 0) * Number(row.price || 0) + Number(row.gstAmount || 0);
@@ -194,5 +195,62 @@ export async function POST(request) {
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: e?.message || "Failed to save sale" }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    const admin = await getAdminFromCookies();
+    if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await connectDB();
+
+    const sales = await Sale.find().select("_id products").lean();
+    if (!sales.length) return NextResponse.json({ ok: true, deleted: 0 });
+
+    let deleted = 0;
+    for (const sale of sales) {
+      const lines = Array.isArray(sale.products) ? sale.products : [];
+      await revertSoldQtyForSaleLineItems(
+        lines.map((r) => ({
+          stockGroupId: r.stockGroupId || null,
+          productId: r.productId || null,
+          quantity: r.quantity,
+        }))
+      );
+
+      const shopLines = lines.filter((r) => r.productId);
+      if (shopLines.length) {
+        const requestedIds = [
+          ...new Set(
+            shopLines
+              .map((r) => String(r.productId || ""))
+              .filter((x) => mongoose.Types.ObjectId.isValid(x))
+          ),
+        ];
+        const existingProducts = await Product.find({ _id: { $in: requestedIds } }).select("_id").lean();
+        const existingIdSet = new Set(existingProducts.map((p) => String(p._id)));
+        const restorableShopLines = shopLines.filter((r) => existingIdSet.has(String(r.productId)));
+        if (restorableShopLines.length) {
+          await applyStockDeltas(
+            restorableShopLines.map((r) => ({
+              productId: r.productId,
+              delta: Number(r.quantity || 0),
+              reason: "sale_return",
+              refModel: "Sale",
+              refId: sale._id,
+              note: "Sale deleted — stock restored",
+            }))
+          );
+        }
+      }
+
+      await Sale.deleteOne({ _id: sale._id });
+      deleted += 1;
+    }
+
+    return NextResponse.json({ ok: true, deleted });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: e?.message || "Failed to clear sales" }, { status: 500 });
   }
 }

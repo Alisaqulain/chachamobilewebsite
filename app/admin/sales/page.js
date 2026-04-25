@@ -42,6 +42,21 @@ function lineDescription(p) {
   return "—";
 }
 
+function filterSuggestionsByQuery(values, query, limit = 100) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return values.slice(0, limit);
+  const starts = [];
+  const contains = [];
+  for (const raw of values || []) {
+    const value = String(raw || "").trim();
+    if (!value) continue;
+    const lower = value.toLowerCase();
+    if (lower.startsWith(q)) starts.push(value);
+    else if (lower.includes(q)) contains.push(value);
+  }
+  return [...starts, ...contains].slice(0, limit);
+}
+
 export default function AdminSalesPage() {
   const [ledgerCategories, setLedgerCategories] = useState([]);
   const [rows, setRows] = useState([newRow()]);
@@ -58,6 +73,8 @@ export default function AdminSalesPage() {
   const [editItems, setEditItems] = useState([]);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedSaleIds, setSelectedSaleIds] = useState([]);
   const [branchSuggestions, setBranchSuggestions] = useState([]);
   const [modelSuggestions, setModelSuggestions] = useState([]);
   const [signatureSuggestions, setSignatureSuggestions] = useState([]);
@@ -121,6 +138,27 @@ export default function AdminSalesPage() {
         total: `₹${Number(h.totalAmount || 0).toLocaleString("en-IN")}`,
       })),
     [history]
+  );
+  const selectedSales = useMemo(() => {
+    if (!selectedSaleIds.length) return [];
+    const idSet = new Set(selectedSaleIds);
+    return history.filter((h) => idSet.has(String(h._id)));
+  }, [history, selectedSaleIds]);
+  const selectedSalesAmount = useMemo(
+    () => selectedSales.reduce((sum, h) => sum + Number(h.totalAmount || 0), 0),
+    [selectedSales]
+  );
+  const selectedSalesQty = useMemo(
+    () =>
+      selectedSales.reduce(
+        (sum, h) => sum + (h.products || []).reduce((lineSum, p) => lineSum + Number(p.quantity || 0), 0),
+        0
+      ),
+    [selectedSales]
+  );
+  const allSalesSelected = useMemo(
+    () => history.length > 0 && selectedSaleIds.length === history.length,
+    [history.length, selectedSaleIds.length]
   );
 
   function updateRow(i, patch) {
@@ -401,12 +439,66 @@ export default function AdminSalesPage() {
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Delete failed");
       setNotice("Sale deleted · stock restored.");
+      setSelectedSaleIds((prev) => prev.filter((x) => x !== String(sale._id)));
       await loadMaster();
     } catch (err) {
       setError(err.message || "Failed");
     } finally {
       setDeletingId("");
     }
+  }
+
+  async function deleteSelectedSales() {
+    if (!selectedSaleIds.length) return;
+    if (!confirm(`Delete ${selectedSaleIds.length} selected sale(s)? Stock will be restored.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      const selectedSet = new Set(selectedSaleIds);
+      const rows = history.filter((h) => selectedSet.has(String(h._id)));
+      let okCount = 0;
+      let failCount = 0;
+      for (const sale of rows) {
+        const res = await fetch(`/api/sales/${sale._id}`, { method: "DELETE" });
+        if (res.ok) okCount += 1;
+        else failCount += 1;
+      }
+      setSelectedSaleIds([]);
+      setNotice(failCount ? `${okCount} deleted, ${failCount} failed.` : `${okCount} sale(s) deleted · stock restored.`);
+      await loadMaster();
+    } catch (err) {
+      setError(err.message || "Bulk delete failed");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  async function deleteAllSales() {
+    if (!history.length) return;
+    if (!confirm(`Delete ALL ${history.length} sales entries? Stock will be restored where possible.`)) return;
+    setBulkDeleting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/sales", { method: "DELETE" });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Clear failed");
+      setSelectedSaleIds([]);
+      setNotice(`${Number(j.deleted || 0)} sale(s) cleared.`);
+      await loadMaster();
+    } catch (err) {
+      setError(err.message || "Clear failed");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
+  function toggleSaleSelection(saleId) {
+    const id = String(saleId);
+    setSelectedSaleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAllSales() {
+    setSelectedSaleIds((prev) => (prev.length === history.length ? [] : history.map((h) => String(h._id))));
   }
 
   return (
@@ -456,6 +548,11 @@ export default function AdminSalesPage() {
           <div className="mt-4 space-y-6">
             {rows.map((row, i) => (
               <div key={i} className="rounded-xl border border-black/10 bg-zinc-50/80 p-4">
+                {(() => {
+                  const branchListId = `sales-branch-suggestions-${i}`;
+                  const branchMatches = filterSuggestionsByQuery(branchSuggestions, row.branch, 120);
+                  return (
+                    <>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   <div className="lg:col-span-3">
                     <label className="text-xs font-bold uppercase text-black/45">Ledger category</label>
@@ -487,7 +584,7 @@ export default function AdminSalesPage() {
                       value={row.branch}
                       onChange={(e) => updateRow(i, { branch: e.target.value, stockGroupId: "", netStock: 0 })}
                       placeholder="e.g. Oppo"
-                      list="sales-branch-suggestions"
+                      list={branchListId}
                       className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
                     />
                   </div>
@@ -612,6 +709,14 @@ export default function AdminSalesPage() {
                     Remove line
                   </button>
                 </div>
+                <datalist id={branchListId}>
+                  {branchMatches.map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -637,11 +742,6 @@ export default function AdminSalesPage() {
         </div>
       </form>
 
-      <datalist id="sales-branch-suggestions">
-        {branchSuggestions.map((x) => (
-          <option key={x} value={x} />
-        ))}
-      </datalist>
       <datalist id="sales-model-suggestions">
         {modelSuggestions.map((x) => (
           <option key={x} value={x} />
@@ -654,24 +754,61 @@ export default function AdminSalesPage() {
       </datalist>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-black">Sales history</h2>
-        <DownloadExports
-          filenameBase="sales"
-          title="Sales history"
-          subtitle="Ledger sales"
-          metaLines={[`Rows: ${exportRows.length}`]}
-          columns={exportColumns}
-          rows={exportRows}
-        />
+        <div>
+          <h2 className="text-lg font-bold text-black">Sales history</h2>
+          {selectedSaleIds.length ? (
+            <p className="text-xs font-semibold text-black/65">
+              Selected: {selectedSaleIds.length} · Qty: {selectedSalesQty.toLocaleString("en-IN")} · Amount: ₹
+              {selectedSalesAmount.toLocaleString("en-IN")}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={!history.length || bulkDeleting}
+            onClick={deleteAllSales}
+            className="min-h-10 rounded-lg border border-red-400 bg-red-100 px-3 text-xs font-extrabold text-red-800 disabled:opacity-50"
+          >
+            {bulkDeleting ? "Clearing…" : "Delete all sales"}
+          </button>
+          <button
+            type="button"
+            disabled={!selectedSaleIds.length || bulkDeleting}
+            onClick={deleteSelectedSales}
+            className="min-h-10 rounded-lg border border-red-300 bg-red-50 px-3 text-xs font-bold text-red-700 disabled:opacity-50"
+          >
+            {bulkDeleting ? "Deleting…" : `Delete selected (${selectedSaleIds.length})`}
+          </button>
+          <DownloadExports
+            filenameBase="sales"
+            title="Sales history"
+            subtitle="Ledger sales"
+            metaLines={[`Rows: ${exportRows.length}`]}
+            columns={exportColumns}
+            rows={exportRows}
+          />
+        </div>
       </div>
 
       <div className="mt-3 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
             <tr>
+              <th className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSalesSelected}
+                  onChange={toggleSelectAllSales}
+                  aria-label="Select all sales"
+                  className="h-4 w-4 rounded border-black/25"
+                />
+              </th>
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Products</th>
               <th className="px-4 py-3">Items</th>
+              <th className="px-4 py-3">Qty</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -679,9 +816,33 @@ export default function AdminSalesPage() {
           <tbody className="divide-y divide-black/5">
             {history.map((h) => (
               <tr key={h._id}>
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedSaleIds.includes(String(h._id))}
+                    onChange={() => toggleSaleSelection(h._id)}
+                    aria-label={`Select sale ${h._id}`}
+                    className="h-4 w-4 rounded border-black/25"
+                  />
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
                 <td className="px-4 py-3 font-medium text-black">{h.customerLabel || "—"}</td>
+                <td className="px-4 py-3">
+                  <div className="max-w-md text-xs text-black/80">
+                    {(h.products || []).slice(0, 3).map((p, idx) => (
+                      <div key={idx}>
+                        {lineDescription(p)} × {Number(p.quantity || 0)}
+                      </div>
+                    ))}
+                    {(h.products || []).length > 3 ? (
+                      <div className="font-semibold text-black/50">+{(h.products || []).length - 3} more</div>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="px-4 py-3">{(h.products || []).length}</td>
+                <td className="px-4 py-3">
+                  {(h.products || []).reduce((sum, p) => sum + Number(p.quantity || 0), 0)}
+                </td>
                 <td className="px-4 py-3 font-bold">₹{Number(h.totalAmount || 0).toLocaleString("en-IN")}</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   <button
