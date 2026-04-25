@@ -54,6 +54,7 @@ export default function AdminSalesPage() {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editItems, setEditItems] = useState([]);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const rowsRef = useRef(rows);
@@ -313,6 +314,16 @@ export default function AdminSalesPage() {
     setEditName(sale.walkInName || "");
     setEditPhone(sale.walkInPhone || "");
     setEditDate(sale.date ? String(sale.date).slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setEditItems(
+      (sale.products || []).map((p) => ({
+        productId: p.productId?._id || "",
+        stockGroupId: p.stockGroupId?._id || "",
+        label: lineDescription(p),
+        quantity: Number(p.quantity || 1),
+        price: Number(p.price || 0),
+        gstAmount: Number(p.gstAmount || 0),
+      }))
+    );
     setError("");
   }
 
@@ -328,6 +339,22 @@ export default function AdminSalesPage() {
         body.walkInName = editName.trim();
         body.walkInPhone = editPhone.trim();
       }
+      if (!editItems.length) throw new Error("At least one line item is required");
+      body.products = editItems.map((line, idx) => {
+        const quantity = Number(line.quantity || 0);
+        const price = Number(line.price || 0);
+        const gstAmount = Number(line.gstAmount || 0);
+        if (quantity < 1) throw new Error(`Line ${idx + 1}: quantity must be at least 1`);
+        if (price < 0) throw new Error(`Line ${idx + 1}: amount must be 0 or more`);
+        if (gstAmount < 0) throw new Error(`Line ${idx + 1}: GST must be 0 or more`);
+        return {
+          productId: line.productId || undefined,
+          stockGroupId: line.stockGroupId || undefined,
+          quantity,
+          price,
+          gstAmount,
+        };
+      });
       const res = await fetch(`/api/sales/${editingSale._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -648,8 +675,8 @@ export default function AdminSalesPage() {
             <h3 className="text-lg font-bold text-black">Edit sale</h3>
             <p className="mt-1 text-xs text-black/50">
               {editingSale.customerId
-                ? "This sale uses a saved customer. You can change the date only. To change items, delete and create a new sale."
-                : "Update customer details and sale date. Line items are not changed here."}
+                ? "This sale uses a saved customer. You can update date and line item values."
+                : "Update customer details, date, and line item values. Stock is recalculated automatically."}
             </p>
             <div className="mt-4 grid gap-3">
               {!editingSale.customerId ? (
@@ -683,6 +710,63 @@ export default function AdminSalesPage() {
                   onChange={(e) => setEditDate(e.target.value)}
                   className="mt-1 min-h-12 w-full rounded-xl border border-black/15 px-3 text-sm"
                 />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-black/45">Line items</label>
+                <div className="mt-2 space-y-2">
+                  {editItems.map((line, i) => (
+                    <div
+                      key={`${line.productId || line.stockGroupId || "row"}-${i}`}
+                      className="rounded-xl border border-black/10 bg-zinc-50 p-3"
+                    >
+                      <p className="text-xs font-semibold text-black/70">{line.label || "Line item"}</p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        <div>
+                          <label className="text-[11px] font-bold uppercase text-black/45">Qty</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={line.quantity}
+                            onChange={(e) =>
+                              setEditItems((prev) =>
+                                prev.map((x, idx) => (idx === i ? { ...x, quantity: Number(e.target.value || 0) } : x))
+                              )
+                            }
+                            className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold uppercase text-black/45">Amount</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={line.price}
+                            onChange={(e) =>
+                              setEditItems((prev) =>
+                                prev.map((x, idx) => (idx === i ? { ...x, price: Number(e.target.value || 0) } : x))
+                              )
+                            }
+                            className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold uppercase text-black/45">GST</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={line.gstAmount}
+                            onChange={(e) =>
+                              setEditItems((prev) =>
+                                prev.map((x, idx) => (idx === i ? { ...x, gstAmount: Number(e.target.value || 0) } : x))
+                              )
+                            }
+                            className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="mt-5 flex gap-2">
