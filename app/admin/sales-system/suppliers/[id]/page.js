@@ -39,6 +39,15 @@ function normalizeOcrForModels(raw) {
   return t;
 }
 
+function fixCommonModelOcrArtifacts(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  return raw
+    .replace(/％/g, "%")
+    .replace(/([A-Za-z0-9])%([A-Za-z0-9])/g, "$19$2")
+    .replace(/\bRLM%/gi, "RLM9")
+    .replace(/\bRMX%/gi, "RMX9");
+}
+
 async function cropImageToBlob(imageEl, crop) {
   if (!imageEl || !crop || crop.w < 8 || crop.h < 8) return null;
   const imageRect = imageEl.getBoundingClientRect();
@@ -67,6 +76,32 @@ function clampCrop(crop, stageW, stageH) {
   const safeX = Math.max(0, Math.min(stageW - safeW, crop.x));
   const safeY = Math.max(0, Math.min(stageH - safeH, crop.y));
   return { x: safeX, y: safeY, w: safeW, h: safeH };
+}
+
+async function preprocessImageForOcr(imageSource) {
+  if (!(imageSource instanceof Blob)) return null;
+  const objectUrl = URL.createObjectURL(imageSource);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const node = new Image();
+      node.onload = () => resolve(node);
+      node.onerror = () => reject(new Error("Could not prepare image for OCR"));
+      node.src = objectUrl;
+    });
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.filter = "grayscale(1) contrast(1.45) brightness(1.08)";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob || null), "image/png");
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export default function SupplierPurchasesPage() {
@@ -181,10 +216,30 @@ export default function SupplierPurchasesPage() {
       const { createWorker } = await import("tesseract.js");
       const worker = await createWorker("eng");
       try {
-        const {
-          data: { text },
-        } = await worker.recognize(imageSource);
-        const cleaned = normalizeOcrForModels(text);
+        await worker.setParameters({
+          preserve_interword_spaces: "1",
+          tessedit_pageseg_mode: "6",
+          tessedit_char_whitelist:
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,+-_/()[]{}.: ",
+        });
+
+        const enhancedSource = await preprocessImageForOcr(imageSource);
+        const variants = enhancedSource
+          ? [imageSource, enhancedSource]
+          : [imageSource];
+        let bestText = "";
+        let bestConfidence = -1;
+
+        for (const src of variants) {
+          const { data } = await worker.recognize(src);
+          const confidence = Number(data?.confidence || 0);
+          if (confidence >= bestConfidence) {
+            bestConfidence = confidence;
+            bestText = String(data?.text || "");
+          }
+        }
+
+        const cleaned = normalizeOcrForModels(fixCommonModelOcrArtifacts(bestText));
         if (!cleaned) {
           setToast("No text found in photo — try a clearer shot or type manually");
           return;
@@ -193,7 +248,7 @@ export default function SupplierPurchasesPage() {
           ...f,
           modelNames: f.modelNames.trim() ? `${f.modelNames.trim()}, ${cleaned}` : cleaned,
         }));
-        setToast("Text from selected area added — correct it if needed, then save");
+        setToast("Text from selected area added with enhanced OCR — verify quickly, then save");
       } finally {
         await worker.terminate();
       }
