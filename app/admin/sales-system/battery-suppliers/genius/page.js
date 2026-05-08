@@ -302,7 +302,6 @@ export default function GeniusBatterySupplierPage() {
   const [rows, setRows] = useState([]);
   const [brandFilter, setBrandFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [activeOnly, setActiveOnly] = useState(true);
   const [purchaseFilter, setPurchaseFilter] = useState("all"); // all | purchased | notPurchased
   const [newItem, setNewItem] = useState(emptyNewItem);
   const [savingItem, setSavingItem] = useState(false);
@@ -318,6 +317,9 @@ export default function GeniusBatterySupplierPage() {
   const [purchaseSaving, setPurchaseSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -326,7 +328,7 @@ export default function GeniusBatterySupplierPage() {
       const qs = new URLSearchParams();
       if (brandFilter) qs.set("brand", brandFilter);
       if (search.trim()) qs.set("q", search.trim());
-      qs.set("active", activeOnly ? "1" : "all");
+      qs.set("active", "1");
       if (supplierId) qs.set("supplierId", supplierId);
 
       const [viewRes, scRes, qRes, supRes] = await Promise.all([
@@ -354,7 +356,7 @@ export default function GeniusBatterySupplierPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeOnly, brandFilter, search, supplierId]);
+  }, [brandFilter, search, supplierId]);
 
 
   useEffect(() => {
@@ -749,6 +751,49 @@ export default function GeniusBatterySupplierPage() {
     }
   }
 
+  function openEdit(row) {
+    setEditId(String(row?._id || ""));
+    setEditForm({
+      brand: asText(row?.brand),
+      phoneModel: asText(row?.phoneModel),
+      batteryCode: asText(row?.batteryCode),
+      listPrice: String(row?.listPrice ?? ""),
+      active: Boolean(row?.active),
+    });
+    setToast("");
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    if (!editId || !editForm) return;
+    setEditSaving(true);
+    setToast("");
+    try {
+      const listPrice = parsePriceToken(editForm.listPrice);
+      const res = await fetch(`/api/battery-catalog/${encodeURIComponent(editId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: editForm.brand,
+          phoneModel: editForm.phoneModel,
+          batteryCode: editForm.batteryCode,
+          listPrice,
+          active: Boolean(editForm.active),
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Update failed");
+      setEditId(null);
+      setEditForm(null);
+      setToast("Updated");
+      await load();
+    } catch (err) {
+      setToast(err?.message || "Update failed");
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   return (
     <div className="max-w-6xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -992,15 +1037,6 @@ export default function GeniusBatterySupplierPage() {
               className="mt-1 min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm"
             />
           </div>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => setActiveOnly((v) => !v)}
-              className="min-h-11 rounded-lg border border-black/15 bg-white px-4 text-sm font-semibold text-black"
-            >
-              {activeOnly ? "Showing active" : "Showing all"}
-            </button>
-          </div>
           <div>
             <label className="text-[11px] font-bold text-black/45">Purchased</label>
             <select
@@ -1060,6 +1096,7 @@ export default function GeniusBatterySupplierPage() {
                 <th className="px-3 py-2">Purchased qty</th>
                 <th className="px-3 py-2">Last purchase</th>
                 <th className="px-3 py-2">Last total</th>
+                <th className="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
@@ -1104,6 +1141,26 @@ export default function GeniusBatterySupplierPage() {
                   </td>
                   <td className="px-3 py-2 font-semibold">
                     {r.lastPurchaseTotal == null ? "—" : `₹${Number(r.lastPurchaseTotal).toLocaleString("en-IN")}`}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {typeof r._id === "string" && /^[a-f\d]{24}$/i.test(r._id) ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(r)}
+                        className="text-xs font-bold text-brand-dim hover:underline"
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        title="This is a virtual row (from purchases). Add it to catalog first to edit."
+                        className="cursor-not-allowed text-xs font-bold text-black/40"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1191,6 +1248,83 @@ export default function GeniusBatterySupplierPage() {
                 onClick={() => {
                   setPurchaseModal(null);
                   setPurchaseForm(null);
+                }}
+                className="min-h-11 flex-1 rounded-lg border text-sm font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {editId && editForm ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <form onSubmit={saveEdit} className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-bold text-black">Edit catalog item</h3>
+            <p className="mt-1 text-xs text-black/55">Update brand/model/code/list price (₹) and active status.</p>
+            <div className="mt-4 grid gap-3">
+              <div>
+                <label className="text-xs font-bold text-black/45">Brand</label>
+                <input
+                  required
+                  value={editForm.brand}
+                  onChange={(e) => setEditForm((f) => ({ ...f, brand: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Phone model</label>
+                <input
+                  required
+                  value={editForm.phoneModel}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phoneModel: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Battery code</label>
+                <input
+                  required
+                  value={editForm.batteryCode}
+                  onChange={(e) => setEditForm((f) => ({ ...f, batteryCode: e.target.value }))}
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">List price</label>
+                <input
+                  required
+                  value={editForm.listPrice}
+                  onChange={(e) => setEditForm((f) => ({ ...f, listPrice: e.target.value }))}
+                  placeholder="e.g. 530 or 5-30"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+                <p className="mt-1 text-[11px] text-black/45">Tip: “5-30” becomes ₹530.</p>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-black/70">
+                <input
+                  type="checkbox"
+                  checked={Boolean(editForm.active)}
+                  onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.checked }))}
+                  className="h-4 w-4 rounded border-black/25"
+                />
+                Active (visible when “Showing active”)
+              </label>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="min-h-11 flex-1 rounded-lg bg-black text-sm font-bold text-brand disabled:opacity-50"
+              >
+                {editSaving ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditId(null);
+                  setEditForm(null);
                 }}
                 className="min-h-11 flex-1 rounded-lg border text-sm font-semibold"
               >
