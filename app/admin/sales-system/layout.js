@@ -8,6 +8,7 @@ const nav = [
   { href: "/admin/sales-system/dashboard", label: "Dashboard" },
   { href: "/admin/sales-system/categories", label: "Ledger categories" },
   { href: "/admin/sales-system/suppliers", label: "Suppliers" },
+  { href: "/admin/sales-system/battery-suppliers/genius", label: "Genius Batteries" },
   { href: "/admin/sales-system/sales", label: "Sales Entry" },
   { href: "/admin/sales-system/returns", label: "Returns" },
   { href: "/admin/sales-system/inventory", label: "Inventory" },

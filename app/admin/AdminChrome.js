@@ -25,7 +25,8 @@ export default function AdminChrome({ children }) {
     pathname.startsWith("/admin/purchases") ||
     pathname.startsWith("/admin/sales") ||
     pathname.startsWith("/admin/returns") ||
-    pathname.startsWith("/admin/inventory");
+    pathname.startsWith("/admin/inventory") ||
+    pathname.startsWith("/admin/sales-system");
 
   const [state, setState] = useState({
     loading: isStaffPanel && !isLogin,

@@ -81,6 +81,20 @@ export default function AdminSidebar({ mobileOpen, onNavigate }) {
               Purchases, billing parties, movements — not the public shop UI.
             </p>
             <div className="space-y-1">
+              <Link
+                href="/admin/sales-system/battery-suppliers/genius"
+                onClick={() => onNavigate?.()}
+                className={linkClass("/admin/sales-system/battery-suppliers/genius")}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 2l3 7h6l-5 4 2 7-6-4-6 4 2-7-5-4h6l3-7z"
+                  />
+                </svg>
+                Genius Batteries
+              </Link>
               <Link href="/admin/suppliers" onClick={() => onNavigate?.()} className={linkClass("/admin/suppliers")}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5V4H2v16h5m10 0v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6m10 0H7" />

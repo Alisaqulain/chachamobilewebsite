@@ -56,6 +56,7 @@ function SuggestInput({
   required,
   className,
   autoComplete = "off",
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -118,6 +119,7 @@ function SuggestInput({
   return (
     <div ref={rootRef} className="relative">
       <input
+        disabled={disabled}
         required={required}
         value={value}
         onChange={(e) => {
@@ -264,6 +266,33 @@ export default function SupplierPurchasesPage() {
   const [selectedPurchaseIds, setSelectedPurchaseIds] = useState([]);
   const [signatureManuallyEdited, setSignatureManuallyEdited] = useState(false);
   const [purchaseSearch, setPurchaseSearch] = useState("");
+  const [useGeniusCatalog, setUseGeniusCatalog] = useState(false);
+  const [signaturePromptOpen, setSignaturePromptOpen] = useState(false);
+  const [signaturePromptValue, setSignaturePromptValue] = useState("");
+  const [signaturePromptSkip, setSignaturePromptSkip] = useState(false);
+  const [geniusOpen, setGeniusOpen] = useState(false);
+  const [geniusLoading, setGeniusLoading] = useState(false);
+  const [geniusItems, setGeniusItems] = useState([]);
+  const [geniusQ, setGeniusQ] = useState("");
+  const [geniusBrand, setGeniusBrand] = useState("");
+  const [geniusSelected, setGeniusSelected] = useState([]);
+  const [geniusEdits, setGeniusEdits] = useState({});
+
+  const batteryCategoryId = useMemo(() => {
+    const hit = (categories || []).find((c) => String(c?.name || "").trim().toLowerCase() === "battery");
+    return hit?._id || "";
+  }, [categories]);
+
+  useEffect(() => {
+    if (!useGeniusCatalog) return;
+    setForm((f) => {
+      const next = { ...f };
+      // When Genius catalog mode is on, always prefer Battery ledger category (avoid accidental "Folder").
+      if (batteryCategoryId) next.salesCategoryId = batteryCategoryId;
+      if (!String(next.quality || "").trim()) next.quality = qualitySuggestions?.[0] || "Original";
+      return next;
+    });
+  }, [batteryCategoryId, qualitySuggestions, useGeniusCatalog]);
 
   const closeOcrCrop = useCallback(() => {
     setOcrImageUrl((prev) => {
@@ -276,6 +305,62 @@ export default function SupplierPurchasesPage() {
     setOcrInteraction(null);
     setOcrZoomPreviewUrl("");
   }, []);
+
+  const loadGenius = useCallback(async () => {
+    if (!geniusOpen) return;
+    setGeniusLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set("supplierKey", "genius");
+      qs.set("active", "1");
+      if (geniusQ.trim()) qs.set("q", geniusQ.trim());
+      if (geniusBrand.trim()) qs.set("brand", geniusBrand.trim());
+      const res = await fetch(`/api/battery-catalog?${qs.toString()}`);
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Failed to load genius catalog");
+      const items = Array.isArray(j.items) ? j.items : [];
+      setGeniusItems(items);
+      setGeniusEdits((prev) => {
+        const next = { ...prev };
+        for (const it of items) {
+          const key = String(it._id);
+          if (!next[key]) {
+            next[key] = { quantity: "1", purchasePrice: String(Number(it.listPrice || 0)) };
+          }
+        }
+        return next;
+      });
+    } catch (e) {
+      setToast(e.message);
+    } finally {
+      setGeniusLoading(false);
+    }
+  }, [geniusBrand, geniusOpen, geniusQ]);
+
+  useEffect(() => {
+    void loadGenius();
+  }, [loadGenius]);
+
+  const geniusBrands = useMemo(() => {
+    const set = new Set();
+    for (const it of geniusItems) set.add(String(it.brand || "").trim());
+    return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [geniusItems]);
+
+  const toggleGeniusSelectAll = useCallback(() => {
+    setGeniusSelected((prev) => {
+      if (!geniusItems.length) return [];
+      if (prev.length === geniusItems.length) return [];
+      return geniusItems.map((x) => String(x._id));
+    });
+  }, [geniusItems]);
+
+  const toggleGeniusRow = useCallback((rowId) => {
+    const key = String(rowId);
+    setGeniusSelected((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
+  }, []);
+
+  // saveGeniusPurchases is defined after `load` to avoid TDZ errors in dev.
 
   const stopLiveCamera = useCallback(() => {
     const stream = liveCameraStreamRef.current;
@@ -587,6 +672,68 @@ export default function SupplierPurchasesPage() {
     }
   }, [id]);
 
+  const saveGeniusPurchases = useCallback(
+    async (e) => {
+      e?.preventDefault?.();
+      if (!geniusSelected.length) {
+        setToast("Select at least 1 battery from Genius catalog");
+        return;
+      }
+      const salesCategoryId = (batteryCategoryId || String(form.salesCategoryId || "").trim());
+      if (!salesCategoryId) {
+        setToast('Select ledger category "Battery" (or create it in Sales System → Ledger categories)');
+        return;
+      }
+      if (!String(form.quality || "").trim()) {
+        setToast("Select quality");
+        return;
+      }
+      setSaving(true);
+      setToast("");
+      try {
+        const idSet = new Set(geniusSelected);
+        const selectedRows = geniusItems.filter((x) => idSet.has(String(x._id)));
+        for (const it of selectedRows) {
+          const edit = geniusEdits[String(it._id)] || {};
+          const quantity = Number(edit.quantity || 0);
+          const purchasePrice = Number(edit.purchasePrice || 0);
+          if (!Number.isFinite(quantity) || quantity < 1) throw new Error(`Invalid quantity for ${it.phoneModel}`);
+          if (!Number.isFinite(purchasePrice) || purchasePrice < 0)
+            throw new Error(`Invalid purchase price for ${it.phoneModel}`);
+
+          const res = await fetch("/api/inventory/parts-purchases", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              supplierId: id,
+              date: form.date,
+              salesCategoryId,
+              mobileName: String(it.brand || "").trim() || "—",
+              productName: String(it.phoneModel || "").trim(),
+              quality: form.quality,
+              quantity,
+              purchasePrice,
+              gstAmount: 0,
+              notes: `Genius battery · code: ${it.batteryCode}`,
+              signatureName: String(it.batteryCode || "").trim(),
+            }),
+          });
+          const j = await res.json();
+          if (!res.ok) throw new Error(j.error || "Failed to save a genius purchase line");
+        }
+        setToast("Genius purchase saved · stock updated");
+        setGeniusOpen(false);
+        setGeniusSelected([]);
+        await load();
+      } catch (err) {
+        setToast(err.message || "Failed to save genius purchases");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [batteryCategoryId, form.date, form.quality, form.salesCategoryId, geniusEdits, geniusItems, geniusSelected, id, load]
+  );
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -765,6 +912,16 @@ export default function SupplierPurchasesPage() {
 
   async function onAddPurchase(e) {
     e.preventDefault();
+    if (useGeniusCatalog) {
+      setGeniusOpen(true);
+      return;
+    }
+    const sig = String(form.signatureName || "").trim();
+    if (!sig && !signaturePromptSkip) {
+      setSignaturePromptValue("");
+      setSignaturePromptOpen(true);
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/inventory/parts-purchases", {
@@ -781,6 +938,45 @@ export default function SupplierPurchasesPage() {
           purchasePrice: Number(form.purchasePrice),
           gstAmount: Number(form.gstAmount || 0),
           signatureName: String(form.signatureName || "").trim(),
+          notes: form.notes,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Save failed");
+      setForm({
+        ...emptyPurchase,
+        date: new Date().toISOString().slice(0, 10),
+        salesCategoryId: pickDefaultSalesCategoryId(categories),
+      });
+      setSignatureManuallyEdited(false);
+      setToast("Purchase saved · stock updated");
+      await load();
+    } catch (e) {
+      setToast(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitWithSignatureOverride() {
+    setSignaturePromptOpen(false);
+    const override = String(signaturePromptValue || "").trim();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/inventory/parts-purchases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supplierId: id,
+          date: form.date,
+          salesCategoryId: form.salesCategoryId,
+          mobileName: form.folderName,
+          productName: form.modelNames,
+          quality: form.quality,
+          quantity: Number(form.quantity),
+          purchasePrice: Number(form.purchasePrice),
+          gstAmount: Number(form.gstAmount || 0),
+          signatureName: override,
           notes: form.notes,
         }),
       });
@@ -1047,15 +1243,33 @@ export default function SupplierPurchasesPage() {
               onChange={(next) => setForm((f) => ({ ...f, folderName: next }))}
               suggestions={branchSuggestions}
               placeholder="e.g. Oppo, Samsung (not the category above)"
-              className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+              className="min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm disabled:bg-zinc-100 disabled:text-black/50"
+              autoComplete="off"
+              disabled={useGeniusCatalog}
             />
           </div>
         </div>
         <div className="sm:col-span-2">
           <label className="text-xs font-bold text-black/45">Model / product label</label>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              id="useGeniusCatalog"
+              type="checkbox"
+              checked={useGeniusCatalog}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setUseGeniusCatalog(next);
+                if (next) setGeniusOpen(true);
+              }}
+              className="h-4 w-4 rounded border-black/25"
+            />
+            <label htmlFor="useGeniusCatalog" className="text-xs font-bold text-black/70">
+              Use Genius battery catalog (checkbox list)
+            </label>
+          </div>
           <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-stretch">
             <textarea
-              required
+              required={!useGeniusCatalog}
               value={form.modelNames}
               onChange={(e) =>
                 setForm((f) => {
@@ -1068,14 +1282,23 @@ export default function SupplierPurchasesPage() {
                   };
                 })
               }
+              disabled={useGeniusCatalog}
               rows={3}
               placeholder="e.g. A23, Reno 12 (separate with comma or new line)"
-              className="min-h-12 w-full flex-1 resize-y rounded-lg border border-black/15 px-3 py-2 text-sm leading-6"
+              className="min-h-12 w-full flex-1 resize-y rounded-lg border border-black/15 px-3 py-2 text-sm leading-6 disabled:bg-zinc-100 disabled:text-black/50"
             />
             <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:justify-stretch">
               <button
                 type="button"
-                disabled={modelOcrBusy || saving || cameraBusy}
+                disabled={saving}
+                onClick={() => setGeniusOpen(true)}
+                className="min-h-12 rounded-lg bg-black px-3 text-xs font-bold text-brand disabled:opacity-50 sm:min-w-[7.5rem]"
+              >
+                Genius list
+              </button>
+              <button
+                type="button"
+                disabled={useGeniusCatalog || modelOcrBusy || saving || cameraBusy}
                 onClick={openLiveCamera}
                 className="min-h-12 rounded-lg border border-black/20 bg-zinc-50 px-3 text-xs font-bold text-black disabled:opacity-50 sm:min-w-[7.5rem]"
               >
@@ -1083,7 +1306,7 @@ export default function SupplierPurchasesPage() {
               </button>
               <button
                 type="button"
-                disabled={modelOcrBusy || saving}
+                disabled={useGeniusCatalog || modelOcrBusy || saving}
                 onClick={() => modelGalleryInputRef.current?.click()}
                 className="min-h-12 rounded-lg border border-black/20 bg-white px-3 text-xs font-bold text-black disabled:opacity-50 sm:min-w-[7.5rem]"
               >
@@ -1105,20 +1328,21 @@ export default function SupplierPurchasesPage() {
         <div>
           <label className="text-xs font-bold text-black/45">Quantity</label>
           <input
-            required
+            required={!useGeniusCatalog}
             type="number"
             min={1}
             value={form.quantity}
             onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
             onWheel={(e) => e.currentTarget.blur()}
             inputMode="numeric"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            disabled={useGeniusCatalog}
+            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm disabled:bg-zinc-100 disabled:text-black/50"
           />
         </div>
         <div>
           <label className="text-xs font-bold text-black/45">Purchase price (unit)</label>
           <input
-            required
+            required={!useGeniusCatalog}
             type="number"
             min={0}
             step={1}
@@ -1126,7 +1350,8 @@ export default function SupplierPurchasesPage() {
             onChange={(e) => setForm((f) => ({ ...f, purchasePrice: e.target.value }))}
             onWheel={(e) => e.currentTarget.blur()}
             inputMode="numeric"
-            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+            disabled={useGeniusCatalog}
+            className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm disabled:bg-zinc-100 disabled:text-black/50"
           />
         </div>
         <div>
@@ -1630,6 +1855,206 @@ export default function SupplierPurchasesPage() {
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {geniusOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center">
+          <form
+            onSubmit={saveGeniusPurchases}
+            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 shadow-xl"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-black">Genius battery catalog</h3>
+                <p className="mt-1 text-xs text-black/55">
+                  Tick batteries and save purchase lines. This sets <strong>signature name</strong> to battery code so it
+                  appears purchased in Genius Batteries page.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGeniusOpen(false);
+                    setGeniusSelected([]);
+                  }}
+                  className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-semibold text-black"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || geniusLoading || geniusSelected.length === 0}
+                  className="min-h-11 rounded-lg bg-black px-4 text-sm font-bold text-brand disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : `Save selected (${geniusSelected.length})`}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-end gap-2">
+              <div>
+                <label className="text-[11px] font-bold text-black/45">Brand filter</label>
+                <select
+                  value={geniusBrand}
+                  onChange={(e) => setGeniusBrand(e.target.value)}
+                  className="mt-1 min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm"
+                >
+                  <option value="">All</option>
+                  {geniusBrands.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1 min-w-[14rem]">
+                <label className="text-[11px] font-bold text-black/45">Search</label>
+                <input
+                  type="search"
+                  value={geniusQ}
+                  onChange={(e) => setGeniusQ(e.target.value)}
+                  placeholder="Search model or code…"
+                  className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void loadGenius()}
+                disabled={geniusLoading}
+                className="min-h-11 rounded-lg bg-brand px-4 text-sm font-bold text-black disabled:opacity-50"
+              >
+                {geniusLoading ? "Loading…" : "Refresh"}
+              </button>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-xl border border-black/10">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-zinc-50 text-xs font-bold uppercase text-black/45">
+                  <tr>
+                    <th className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={geniusItems.length > 0 && geniusSelected.length === geniusItems.length}
+                        onChange={toggleGeniusSelectAll}
+                        aria-label="Select all genius items"
+                        className="h-4 w-4 rounded border-black/25"
+                      />
+                    </th>
+                    <th className="px-3 py-2">Brand</th>
+                    <th className="px-3 py-2">Model</th>
+                    <th className="px-3 py-2">Code</th>
+                    <th className="px-3 py-2">List</th>
+                    <th className="px-3 py-2">Qty</th>
+                    <th className="px-3 py-2">Purchase price</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5">
+                  {geniusItems.map((it) => {
+                    const key = String(it._id);
+                    const edit = geniusEdits[key] || { quantity: "1", purchasePrice: String(Number(it.listPrice || 0)) };
+                    return (
+                      <tr key={key}>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={geniusSelected.includes(key)}
+                            onChange={() => toggleGeniusRow(key)}
+                            aria-label={`Select ${it.brand} ${it.phoneModel}`}
+                            className="h-4 w-4 rounded border-black/25"
+                          />
+                        </td>
+                        <td className="px-3 py-2 font-semibold">{it.brand}</td>
+                        <td className="px-3 py-2">{it.phoneModel}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{it.batteryCode}</td>
+                        <td className="px-3 py-2">₹{Number(it.listPrice || 0).toLocaleString("en-IN")}</td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={edit.quantity}
+                            onChange={(e) =>
+                              setGeniusEdits((prev) => ({ ...prev, [key]: { ...edit, quantity: e.target.value } }))
+                            }
+                            className="min-h-10 w-20 rounded-lg border border-black/15 px-2 text-sm"
+                            inputMode="numeric"
+                            onWheel={(e) => e.currentTarget.blur()}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min={0}
+                            value={edit.purchasePrice}
+                            onChange={(e) =>
+                              setGeniusEdits((prev) => ({ ...prev, [key]: { ...edit, purchasePrice: e.target.value } }))
+                            }
+                            className="min-h-10 w-28 rounded-lg border border-black/15 px-2 text-sm"
+                            inputMode="numeric"
+                            onWheel={(e) => e.currentTarget.blur()}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {geniusLoading ? <p className="p-4 text-sm text-black/55">Loading…</p> : null}
+              {!geniusLoading && geniusItems.length === 0 ? (
+                <p className="p-4 text-sm text-black/55">No catalog items found.</p>
+              ) : null}
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {signaturePromptOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-bold text-black">Signature name (optional)</h3>
+            <p className="mt-1 text-xs text-black/55">
+              This helps search on dashboard (example: <strong>BLP-817</strong>, <strong>PIXEL 4A</strong>, <strong>a23</strong>).
+              You can leave blank if you don’t want.
+            </p>
+            <div className="mt-4">
+              <label className="text-xs font-bold text-black/45">Signature name</label>
+              <input
+                value={signaturePromptValue}
+                onChange={(e) => setSignaturePromptValue(e.target.value)}
+                placeholder="e.g. BLP-817"
+                className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                autoComplete="off"
+              />
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-xs font-semibold text-black/70">
+                <input
+                  type="checkbox"
+                  checked={signaturePromptSkip}
+                  onChange={(e) => setSignaturePromptSkip(e.target.checked)}
+                  className="h-4 w-4 rounded border-black/25"
+                />
+                Don’t ask again (allow blank)
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSignaturePromptOpen(false)}
+                  className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-semibold text-black"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitWithSignatureOverride()}
+                  className="min-h-11 rounded-lg bg-black px-4 text-sm font-bold text-brand"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
