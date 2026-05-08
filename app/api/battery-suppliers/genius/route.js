@@ -164,6 +164,7 @@ export async function GET(request) {
           brand: r.brand,
           phoneModel: r.phoneModel,
           batteryCode: r.batteryCode,
+          support: asText(r.support),
           listPrice: Number(r.listPrice || 0),
           active: Boolean(r.active),
           purchased: Boolean(sum && sum.purchasedQty > 0),

@@ -8,6 +8,15 @@ function asText(v) {
   return String(v ?? "").trim();
 }
 
+function normalizeBatteryCode(raw) {
+  const t = asText(raw).toUpperCase().replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  if (/^[A-Z]{1,4}\s+[A-Z0-9]{1,4}$/.test(t)) {
+    return t.replace(/\s+/g, "-");
+  }
+  return t;
+}
+
 function parsePriceToken(raw) {
   const t = asText(raw);
   if (!t) return NaN;
@@ -33,7 +42,8 @@ export async function PUT(request, context) {
     if (body?.supplierKey != null) patch.supplierKey = asText(body.supplierKey) || "genius";
     if (body?.brand != null) patch.brand = asText(body.brand);
     if (body?.phoneModel != null) patch.phoneModel = asText(body.phoneModel);
-    if (body?.batteryCode != null) patch.batteryCode = asText(body.batteryCode);
+    if (body?.batteryCode != null) patch.batteryCode = normalizeBatteryCode(body.batteryCode);
+    if (body?.support != null) patch.support = asText(body.support);
     if (body?.listPrice != null) patch.listPrice = parsePriceToken(body.listPrice);
     if (body?.active != null) patch.active = Boolean(body.active);
 
@@ -51,6 +61,7 @@ export async function PUT(request, context) {
         brand: doc.brand,
         phoneModel: doc.phoneModel,
         batteryCode: doc.batteryCode,
+        support: asText(doc.support),
         listPrice: Number(doc.listPrice || 0),
         active: Boolean(doc.active),
         createdAt: doc.createdAt,

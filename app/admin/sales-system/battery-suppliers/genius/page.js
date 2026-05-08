@@ -6,6 +6,10 @@ function asText(v) {
   return String(v ?? "").trim();
 }
 
+function normKey(v) {
+  return asText(v).toLowerCase();
+}
+
 function normalizeOcrText(raw) {
   if (!raw) return "";
   return String(raw)
@@ -55,6 +59,10 @@ const KNOWN_BRANDS = [
   "ITEL",
   "ZF MAX",
 ];
+
+const KNOWN_BRAND_OPTIONS = [...new Set(KNOWN_BRANDS.map((b) => normalizeBrandLabel(b)).filter(Boolean))].sort(
+  (a, b) => a.localeCompare(b)
+);
 
 function normalizeBrandLabel(s) {
   const t = asText(s).toUpperCase().replace(/\s+/g, " ").trim();
@@ -290,6 +298,7 @@ const emptyNewItem = {
   brand: "",
   phoneModel: "",
   batteryCode: "",
+  support: "",
   listPrice: "",
 };
 
@@ -478,6 +487,7 @@ export default function GeniusBatterySupplierPage() {
           brand: newItem.brand,
           phoneModel: newItem.phoneModel,
           batteryCode: newItem.batteryCode,
+          support: newItem.support,
           listPrice,
           active: true,
         }),
@@ -535,27 +545,75 @@ export default function GeniusBatterySupplierPage() {
       }
 
       parts = (parts || []).filter(Boolean);
-      if (parts.length < 3) continue;
+      // Accept 2-column pastes like: Model<TAB>Price (common for iPhone lists)
+      if (parts.length < 2) continue;
 
-      // If first column is S.NO remove it
-      if (/^\d+$/.test(parts[0])) {
+      // If first column is S.NO remove it.
+      // IMPORTANT: for 2-column lists like "11<TAB>670", the "11" is the model (not a serial no),
+      // so only strip S.NO when there are 3+ columns.
+      if (parts.length >= 3 && /^\d+$/.test(parts[0])) {
         parts = parts.slice(1);
       }
 
       let brand = "";
       let phoneModel = "";
       let batteryCode = "";
+      let support = "";
       let priceRaw = "";
 
-      if (parts.length >= 4) {
+      const pickedBrand = normalizeBrandLabel(csvBrand);
+      function isPriceLikeToken(token) {
+        const t = asText(token);
+        if (!t) return false;
+        // Accept tokens that are "mostly numbers" (optionally ₹, commas, decimals) or the special "5-30" shorthand.
+        // Reject model strings like "A-5 2020" which include letters.
+        if (/^\d+\s*-\s*\d+$/.test(t)) return true;
+        if (/[A-Za-z]/.test(t)) return false;
+        return /^\s*₹?\s*\d[\d,]*(?:\.\d+)?\s*$/.test(t);
+      }
+
+      const priceIdx = parts.findIndex((p) => isPriceLikeToken(p) && Number.isFinite(parsePriceToken(p)));
+
+      // When a Brand is selected, table pastes often include extra columns after price
+      // (Status, Purchased qty, etc). In that case treat the first columns as:
+      //   phoneModel, batteryCode, support, ... , price
+      // instead of assuming the first column is brand.
+      if (pickedBrand && parts.length >= 2 && priceIdx !== -1) {
+        brand = pickedBrand;
+        // If the pasted row *already includes* the Brand column (e.g. "OPPO  A-15  BLP-817  —  ₹410 ...")
+        // then shift indexes by one.
+        const startsWithBrand = normKey(parts[0]) === normKey(pickedBrand);
+        const base = startsWithBrand ? 1 : 0;
+        const c1 = parts[base] || "";
+        const c2 = parts[base + 1] || "";
+
+        function looksLikeMiBatteryCodeToken(token) {
+          const t = asText(token).toUpperCase().replace(/\s+/g, " ").trim();
+          if (!t) return false;
+          // Examples: BM-33, BN-5A, BP-40, "BM 5M", "BN 5P"
+          return /^(B[MPN])(?:\s|-)?[A-Z0-9]{1,4}(?:-[A-Z0-9]{1,4})?$/.test(t);
+        }
+
+        // MI price lists are often pasted as: BatteryCode<TAB>Model<TAB>Price
+        // Only apply this swap when the user explicitly picked MI.
+        if (pickedBrand === "MI" && looksLikeMiBatteryCodeToken(c1)) {
+          batteryCode = asText(c1).toUpperCase().replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+          phoneModel = c2;
+        } else {
+          phoneModel = c1;
+          batteryCode = c2;
+        }
+        support = parts[base + 2] && !isPriceLikeToken(parts[base + 2]) ? parts[base + 2] : "";
+        priceRaw = parts[priceIdx];
+      } else if (parts.length >= 4) {
         [brand, phoneModel, batteryCode, priceRaw] = parts;
       } else if (parts.length === 3) {
         // brand missing → take from CSV brand selector (if set)
-        brand = normalizeBrandLabel(csvBrand);
+        brand = pickedBrand;
         [phoneModel, batteryCode, priceRaw] = parts;
       } else if (parts.length === 2) {
         // model + price only → batteryCode defaults to model name (useful for iPhone lists)
-        brand = normalizeBrandLabel(csvBrand);
+        brand = pickedBrand;
         [phoneModel, priceRaw] = parts;
         batteryCode = phoneModel;
       } else {
@@ -564,7 +622,7 @@ export default function GeniusBatterySupplierPage() {
 
       const listPrice = parsePriceToken(priceRaw);
       if (!brand || !phoneModel || !batteryCode || !Number.isFinite(listPrice)) continue;
-      out.push({ brand, phoneModel, batteryCode, listPrice });
+      out.push({ brand, phoneModel, batteryCode, support, listPrice });
     }
     return out;
   }
@@ -875,6 +933,15 @@ export default function GeniusBatterySupplierPage() {
               />
             </div>
             <div>
+              <label className="text-xs font-bold text-black/45">Support (optional)</label>
+              <input
+                value={newItem.support}
+                onChange={(e) => setNewItem((s) => ({ ...s, support: e.target.value }))}
+                placeholder="5G"
+                className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+              />
+            </div>
+            <div>
               <label className="text-xs font-bold text-black/45">List price</label>
               <input
                 required
@@ -914,9 +981,9 @@ export default function GeniusBatterySupplierPage() {
                   className="mt-1 min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm"
                 >
                   <option value="">Auto-detect</option>
-                  {KNOWN_BRANDS.map((b) => (
-                    <option key={b} value={normalizeBrandLabel(b)}>
-                      {normalizeBrandLabel(b)}
+                  {KNOWN_BRAND_OPTIONS.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
                     </option>
                   ))}
                 </select>
@@ -962,9 +1029,9 @@ export default function GeniusBatterySupplierPage() {
                     className="mt-1 min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm"
                   >
                     <option value="">Select…</option>
-                    {KNOWN_BRANDS.map((b) => (
-                      <option key={b} value={normalizeBrandLabel(b)}>
-                        {normalizeBrandLabel(b)}
+                    {KNOWN_BRAND_OPTIONS.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
                       </option>
                     ))}
                   </select>
@@ -1091,6 +1158,7 @@ export default function GeniusBatterySupplierPage() {
                 <th className="px-3 py-2">Brand</th>
                 <th className="px-3 py-2">Phone model</th>
                 <th className="px-3 py-2">Battery code</th>
+                <th className="px-3 py-2">Support</th>
                 <th className="px-3 py-2">List price</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Purchased qty</th>
@@ -1114,6 +1182,7 @@ export default function GeniusBatterySupplierPage() {
                   <td className="px-3 py-2 font-semibold">{r.brand}</td>
                   <td className="px-3 py-2">{r.phoneModel}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.batteryCode}</td>
+                  <td className="px-3 py-2 font-semibold">{asText(r.support) || "—"}</td>
                   <td className="px-3 py-2">₹{Number(r.listPrice || 0).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2">
                     {r.purchased ? (

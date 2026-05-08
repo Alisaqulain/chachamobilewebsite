@@ -7,6 +7,17 @@ function asText(v) {
   return String(v ?? "").trim();
 }
 
+function normalizeBatteryCode(raw) {
+  const t = asText(raw).toUpperCase().replace(/\s+/g, " ").trim();
+  if (!t) return "";
+  // Normalize common battery-code formats that sometimes come with spaces instead of hyphens.
+  // Examples: "BM 5M" -> "BM-5M", "BN 5P" -> "BN-5P"
+  if (/^[A-Z]{1,4}\s+[A-Z0-9]{1,4}$/.test(t)) {
+    return t.replace(/\s+/g, "-");
+  }
+  return t;
+}
+
 function parsePriceToken(raw) {
   const t = asText(raw);
   if (!t) return NaN;
@@ -51,6 +62,7 @@ export async function GET(request) {
         brand: r.brand,
         phoneModel: r.phoneModel,
         batteryCode: r.batteryCode,
+        support: asText(r.support),
         listPrice: Number(r.listPrice || 0),
         active: Boolean(r.active),
         createdAt: r.createdAt,
@@ -71,7 +83,8 @@ export async function POST(request) {
     const supplierKey = asText(body?.supplierKey) || "genius";
     const brand = asText(body?.brand);
     const phoneModel = asText(body?.phoneModel);
-    const batteryCode = asText(body?.batteryCode);
+    const batteryCode = normalizeBatteryCode(body?.batteryCode);
+    const support = asText(body?.support);
     const listPrice = parsePriceToken(body?.listPrice);
     const active = body?.active == null ? true : Boolean(body.active);
 
@@ -83,14 +96,31 @@ export async function POST(request) {
     }
 
     await connectDB();
-    const doc = await BatteryCatalogItem.create({
-      supplierKey,
-      brand,
-      phoneModel,
-      batteryCode,
-      listPrice,
-      active,
-    });
+
+    let doc;
+    let updated = false;
+    try {
+      doc = await BatteryCatalogItem.create({
+        supplierKey,
+        brand,
+        phoneModel,
+        batteryCode,
+        support,
+        listPrice,
+        active,
+      });
+    } catch (e) {
+      // Bulk import often re-sends existing rows; treat duplicates as "update in place"
+      // so users can fix wrong prices by importing the correct list again.
+      if (!/duplicate key/i.test(String(e?.message || ""))) throw e;
+      updated = true;
+      doc = await BatteryCatalogItem.findOneAndUpdate(
+        { supplierKey, brand, phoneModel, batteryCode },
+        { $set: { support, listPrice, active } },
+        { new: true }
+      );
+      if (!doc) throw e;
+    }
 
     return NextResponse.json({
       item: {
@@ -99,9 +129,11 @@ export async function POST(request) {
         brand: doc.brand,
         phoneModel: doc.phoneModel,
         batteryCode: doc.batteryCode,
+        support: asText(doc.support),
         listPrice: Number(doc.listPrice || 0),
         active: Boolean(doc.active),
       },
+      updated,
     });
   } catch (e) {
     console.error(e);

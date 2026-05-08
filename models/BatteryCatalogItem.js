@@ -6,6 +6,8 @@ const BatteryCatalogItemSchema = new mongoose.Schema(
     brand: { type: String, required: true, trim: true },
     phoneModel: { type: String, required: true, trim: true },
     batteryCode: { type: String, required: true, trim: true },
+    // e.g. "5G", "4G", etc (optional; some price lists include this column)
+    support: { type: String, trim: true, default: "" },
     listPrice: { type: Number, required: true, min: 0 },
     active: { type: Boolean, default: true },
   },

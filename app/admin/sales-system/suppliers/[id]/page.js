@@ -277,6 +277,9 @@ export default function SupplierPurchasesPage() {
   const [geniusBrand, setGeniusBrand] = useState("");
   const [geniusSelected, setGeniusSelected] = useState([]);
   const [geniusEdits, setGeniusEdits] = useState({});
+  const [geniusMetaOpen, setGeniusMetaOpen] = useState(false);
+  const [geniusMetaSignature, setGeniusMetaSignature] = useState("");
+  const [geniusMetaQuality, setGeniusMetaQuality] = useState("");
 
   const batteryCategoryId = useMemo(() => {
     const hit = (categories || []).find((c) => String(c?.name || "").trim().toLowerCase() === "battery");
@@ -684,13 +687,21 @@ export default function SupplierPurchasesPage() {
         setToast('Select ledger category "Battery" (or create it in Sales System → Ledger categories)');
         return;
       }
-      if (!String(form.quality || "").trim()) {
-        setToast("Select quality");
+      // Prompt optional signature/quality overrides before saving.
+      // Quality is still required by the API; leaving it blank here will fall back to form.quality.
+      if (!geniusMetaOpen) {
+        setGeniusMetaSignature("");
+        setGeniusMetaQuality(String(form.quality || "").trim());
+        setGeniusMetaOpen(true);
         return;
       }
       setSaving(true);
       setToast("");
       try {
+        const quality = String(geniusMetaQuality || "").trim() || String(form.quality || "").trim();
+        if (!quality) throw new Error("Select quality");
+        const signatureOverride = String(geniusMetaSignature || "").trim();
+
         const idSet = new Set(geniusSelected);
         const selectedRows = geniusItems.filter((x) => idSet.has(String(x._id)));
         for (const it of selectedRows) {
@@ -710,12 +721,13 @@ export default function SupplierPurchasesPage() {
               salesCategoryId,
               mobileName: String(it.brand || "").trim() || "—",
               productName: String(it.phoneModel || "").trim(),
-              quality: form.quality,
+              quality,
               quantity,
               purchasePrice,
               gstAmount: 0,
               notes: `Genius battery · code: ${it.batteryCode}`,
-              signatureName: String(it.batteryCode || "").trim(),
+              // Store only if admin provided; otherwise keep blank.
+              signatureName: signatureOverride,
             }),
           });
           const j = await res.json();
@@ -724,6 +736,7 @@ export default function SupplierPurchasesPage() {
         setToast("Genius purchase saved · stock updated");
         setGeniusOpen(false);
         setGeniusSelected([]);
+        setGeniusMetaOpen(false);
         await load();
       } catch (err) {
         setToast(err.message || "Failed to save genius purchases");
@@ -731,7 +744,20 @@ export default function SupplierPurchasesPage() {
         setSaving(false);
       }
     },
-    [batteryCategoryId, form.date, form.quality, form.salesCategoryId, geniusEdits, geniusItems, geniusSelected, id, load]
+    [
+      batteryCategoryId,
+      form.date,
+      form.quality,
+      form.salesCategoryId,
+      geniusEdits,
+      geniusItems,
+      geniusMetaOpen,
+      geniusMetaQuality,
+      geniusMetaSignature,
+      geniusSelected,
+      id,
+      load,
+    ]
   );
 
   useEffect(() => {
@@ -2053,6 +2079,58 @@ export default function SupplierPurchasesPage() {
                   Save
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {geniusMetaOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-lg font-bold text-black">Save Genius lines</h3>
+            <p className="mt-1 text-xs text-black/55">
+              Optional: enter a <strong>Signature name</strong> (stored on all selected lines) and/or override{" "}
+              <strong>Quality</strong>. If you leave signature blank, it will be stored as blank.
+            </p>
+
+            <div className="mt-4 grid gap-3">
+              <div>
+                <label className="text-xs font-bold text-black/45">Signature name (optional)</label>
+                <input
+                  value={geniusMetaSignature}
+                  onChange={(e) => setGeniusMetaSignature(e.target.value)}
+                  placeholder="e.g. BLP-817"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-black/45">Quality (required)</label>
+                <input
+                  value={geniusMetaQuality}
+                  onChange={(e) => setGeniusMetaQuality(e.target.value)}
+                  placeholder="e.g. Original"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-black/15 px-3 text-sm"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setGeniusMetaOpen(false)}
+                className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-semibold text-black"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveGeniusPurchases()}
+                className="min-h-11 rounded-lg bg-black px-4 text-sm font-bold text-brand"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
