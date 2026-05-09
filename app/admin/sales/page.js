@@ -33,7 +33,22 @@ function newRow() {
   };
 }
 
+function newManualRow() {
+  return {
+    branch: "",
+    model: "",
+    quantity: 1,
+    unitPrice: 0,
+    gstAmount: 0,
+  };
+}
+
 function lineDescription(p) {
+  const mm = String(p?.manualMobileName ?? "").trim();
+  const mp = String(p?.manualProductName ?? "").trim();
+  if (mp || mm) {
+    return [mm, mp].filter(Boolean).join(" — ") || mp || "Manual line";
+  }
   if (p?.stockGroupId) {
     const s = p.stockGroupId;
     return `${s.mobileName || ""} — ${s.productName || ""} (${s.quality || ""})`;
@@ -57,9 +72,143 @@ function filterSuggestionsByQuery(values, query, limit = 100) {
   return [...starts, ...contains].slice(0, limit);
 }
 
+/** Sales history subsection: one table (no mixed stock/manual rows). */
+function SalesHistorySection({
+  title,
+  hint,
+  emptyLabel,
+  sales,
+  exportFilenameBase,
+  exportTitle,
+  exportSubtitle,
+  exportColumns,
+  exportRows,
+  selectedSaleIds,
+  onToggleRow,
+  onToggleSelectAll,
+  allSelected,
+  onEdit,
+  onDelete,
+  onPrint,
+  deletingId,
+}) {
+  const colCount = 8;
+  return (
+    <section className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 bg-zinc-50/80 px-4 py-3">
+        <div>
+          <h3 className="text-base font-bold text-black">{title}</h3>
+          <p className="text-xs text-black/50">{hint}</p>
+        </div>
+        <DownloadExports
+          filenameBase={exportFilenameBase}
+          title={exportTitle}
+          subtitle={exportSubtitle}
+          metaLines={[`Rows: ${sales.length}`]}
+          columns={exportColumns}
+          rows={exportRows}
+        />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
+            <tr>
+              <th className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={onToggleSelectAll}
+                  aria-label={`Select all in ${title}`}
+                  disabled={!sales.length}
+                  className="h-4 w-4 rounded border-black/25 disabled:opacity-40"
+                />
+              </th>
+              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Products</th>
+              <th className="px-4 py-3">Items</th>
+              <th className="px-4 py-3">Qty</th>
+              <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5">
+            {sales.length === 0 ? (
+              <tr>
+                <td colSpan={colCount} className="px-4 py-8 text-center text-sm text-black/55">
+                  {emptyLabel}
+                </td>
+              </tr>
+            ) : (
+              sales.map((h) => (
+                <tr key={h._id}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedSaleIds.includes(String(h._id))}
+                      onChange={() => onToggleRow(h._id)}
+                      aria-label={`Select sale ${h._id}`}
+                      className="h-4 w-4 rounded border-black/25"
+                    />
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 font-medium text-black">{h.customerLabel || "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="max-w-md text-xs text-black/80">
+                      {(h.products || []).slice(0, 3).map((p, idx) => (
+                        <div key={idx}>
+                          {lineDescription(p)} × {Number(p.quantity || 0)}
+                        </div>
+                      ))}
+                      {(h.products || []).length > 3 ? (
+                        <div className="font-semibold text-black/50">+{(h.products || []).length - 3} more</div>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{(h.products || []).length}</td>
+                  <td className="px-4 py-3">
+                    {(h.products || []).reduce((sum, p) => sum + Number(p.quantity || 0), 0)}
+                  </td>
+                  <td className="px-4 py-3 font-bold">₹{Number(h.totalAmount || 0).toLocaleString("en-IN")}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(h)}
+                      className="mr-2 text-xs font-bold text-brand-dim hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(h)}
+                      disabled={deletingId === h._id}
+                      className="mr-2 text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {deletingId === h._id ? "…" : "Delete"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onPrint(h)}
+                      className="text-xs font-bold text-black hover:underline"
+                    >
+                      Print
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export default function AdminSalesPage() {
+  const [saleMode, setSaleMode] = useState("stock"); // "stock" | "manual"
   const [ledgerCategories, setLedgerCategories] = useState([]);
   const [rows, setRows] = useState([newRow()]);
+  const [manualRows, setManualRows] = useState([newManualRow()]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [saving, setSaving] = useState(false);
@@ -119,6 +268,15 @@ export default function AdminSalesPage() {
     [rows]
   );
 
+  const grandTotalManual = useMemo(
+    () =>
+      manualRows.reduce(
+        (sum, r) => sum + Number(r.quantity || 0) * Number(r.unitPrice || 0) + Number(r.gstAmount || 0),
+        0
+      ),
+    [manualRows]
+  );
+
   const exportColumns = useMemo(
     () => [
       { header: "Date", key: "date", width: 12 },
@@ -129,16 +287,36 @@ export default function AdminSalesPage() {
     []
   );
 
-  const exportRows = useMemo(
+  const historyFromStock = useMemo(
+    () => (history || []).filter((h) => h.fromStock !== false),
+    [history]
+  );
+  const historyManual = useMemo(
+    () => (history || []).filter((h) => h.fromStock === false),
+    [history]
+  );
+
+  const exportRowsStock = useMemo(
     () =>
-      (history || []).map((h) => ({
+      historyFromStock.map((h) => ({
         date: h.date ? new Date(h.date).toLocaleDateString() : "—",
         customer: h.customerLabel || "—",
         items: String((h.products || []).length),
         total: `₹${Number(h.totalAmount || 0).toLocaleString("en-IN")}`,
       })),
-    [history]
+    [historyFromStock]
   );
+  const exportRowsManual = useMemo(
+    () =>
+      historyManual.map((h) => ({
+        date: h.date ? new Date(h.date).toLocaleDateString() : "—",
+        customer: h.customerLabel || "—",
+        items: String((h.products || []).length),
+        total: `₹${Number(h.totalAmount || 0).toLocaleString("en-IN")}`,
+      })),
+    [historyManual]
+  );
+
   const selectedSales = useMemo(() => {
     if (!selectedSaleIds.length) return [];
     const idSet = new Set(selectedSaleIds);
@@ -156,9 +334,17 @@ export default function AdminSalesPage() {
       ),
     [selectedSales]
   );
-  const allSalesSelected = useMemo(
-    () => history.length > 0 && selectedSaleIds.length === history.length,
-    [history.length, selectedSaleIds.length]
+  const allStockSelected = useMemo(
+    () =>
+      historyFromStock.length > 0 &&
+      historyFromStock.every((h) => selectedSaleIds.includes(String(h._id))),
+    [historyFromStock, selectedSaleIds]
+  );
+  const allManualSelected = useMemo(
+    () =>
+      historyManual.length > 0 &&
+      historyManual.every((h) => selectedSaleIds.includes(String(h._id))),
+    [historyManual, selectedSaleIds]
   );
 
   function updateRow(i, patch) {
@@ -171,6 +357,18 @@ export default function AdminSalesPage() {
 
   function removeRow(i) {
     setRows((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
+  }
+
+  function updateManualRow(i, patch) {
+    setManualRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function addManualRow() {
+    setManualRows((r) => [...r, newManualRow()]);
+  }
+
+  function removeManualRow(i) {
+    setManualRows((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== i)));
   }
 
   const loadRowOptions = useCallback(async (i) => {
@@ -211,6 +409,44 @@ export default function AdminSalesPage() {
     try {
       if (!customerName.trim()) throw new Error("Enter customer name");
 
+      if (saleMode === "manual") {
+        const products = [];
+        for (let i = 0; i < manualRows.length; i++) {
+          const r = manualRows[i];
+          const model = String(r.model || "").trim();
+          if (!model) throw new Error(`Line ${i + 1}: enter model / description`);
+          const qty = Number(r.quantity || 0);
+          const price = Number(r.unitPrice || 0);
+          const gst = Number(r.gstAmount || 0);
+          if (qty < 1) throw new Error(`Line ${i + 1}: quantity at least 1`);
+          if (price < 0) throw new Error(`Line ${i + 1}: invalid price`);
+          products.push({
+            manualMobileName: String(r.branch || "").trim(),
+            manualProductName: model,
+            quantity: qty,
+            price,
+            gstAmount: Math.max(0, gst),
+          });
+        }
+
+        const res = await fetch("/api/sales", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walkInName: customerName.trim(),
+            walkInPhone: customerPhone.trim(),
+            fromStock: false,
+            products,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save sale");
+        setManualRows([newManualRow()]);
+        setNotice("Manual bill saved (stock not changed).");
+        await loadMaster();
+        return;
+      }
+
       const products = [];
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
@@ -236,6 +472,7 @@ export default function AdminSalesPage() {
         body: JSON.stringify({
           walkInName: customerName.trim(),
           walkInPhone: customerPhone.trim(),
+          fromStock: true,
           products,
         }),
       });
@@ -376,6 +613,8 @@ export default function AdminSalesPage() {
       (sale.products || []).map((p) => ({
         productId: p.productId?._id || "",
         stockGroupId: p.stockGroupId?._id || "",
+        manualMobileName: String(p.manualMobileName || "").trim(),
+        manualProductName: String(p.manualProductName || "").trim(),
         label: lineDescription(p),
         quantity: Number(p.quantity || 1),
         price: Number(p.price || 0),
@@ -405,6 +644,17 @@ export default function AdminSalesPage() {
         if (quantity < 1) throw new Error(`Line ${idx + 1}: quantity must be at least 1`);
         if (price < 0) throw new Error(`Line ${idx + 1}: amount must be 0 or more`);
         if (gstAmount < 0) throw new Error(`Line ${idx + 1}: GST must be 0 or more`);
+        if (editingSale.fromStock === false) {
+          const manualProductName = String(line.manualProductName ?? "").trim();
+          if (!manualProductName) throw new Error(`Line ${idx + 1}: model / description is required`);
+          return {
+            manualMobileName: String(line.manualMobileName ?? "").trim(),
+            manualProductName,
+            quantity,
+            price,
+            gstAmount,
+          };
+        }
         return {
           productId: line.productId || undefined,
           stockGroupId: line.stockGroupId || undefined,
@@ -431,14 +681,22 @@ export default function AdminSalesPage() {
   }
 
   async function removeSale(sale) {
-    if (!confirm(`Delete this sale for ${sale.customerLabel || "customer"}? Stock will be restored.`)) return;
+    const manual = sale.fromStock === false;
+    if (
+      !confirm(
+        manual
+          ? `Delete this manual bill for ${sale.customerLabel || "customer"}?`
+          : `Delete this sale for ${sale.customerLabel || "customer"}? Stock will be restored.`
+      )
+    )
+      return;
     setDeletingId(sale._id);
     setError("");
     try {
       const res = await fetch(`/api/sales/${sale._id}`, { method: "DELETE" });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Delete failed");
-      setNotice("Sale deleted · stock restored.");
+      setNotice(manual ? "Manual bill deleted." : "Sale deleted · stock restored.");
       setSelectedSaleIds((prev) => prev.filter((x) => x !== String(sale._id)));
       await loadMaster();
     } catch (err) {
@@ -450,21 +708,35 @@ export default function AdminSalesPage() {
 
   async function deleteSelectedSales() {
     if (!selectedSaleIds.length) return;
-    if (!confirm(`Delete ${selectedSaleIds.length} selected sale(s)? Stock will be restored.`)) return;
+    const selectedSet = new Set(selectedSaleIds);
+    const preview = history.filter((h) => selectedSet.has(String(h._id)));
+    const restoresStock = preview.some((h) => h.fromStock !== false);
+    if (
+      !confirm(
+        `Delete ${selectedSaleIds.length} selected sale(s)?${
+          restoresStock ? " Stock will be restored for stock-backed sales." : ""
+        }`
+      )
+    )
+      return;
     setBulkDeleting(true);
     setError("");
     try {
-      const selectedSet = new Set(selectedSaleIds);
-      const rows = history.filter((h) => selectedSet.has(String(h._id)));
       let okCount = 0;
       let failCount = 0;
-      for (const sale of rows) {
+      for (const sale of preview) {
         const res = await fetch(`/api/sales/${sale._id}`, { method: "DELETE" });
         if (res.ok) okCount += 1;
         else failCount += 1;
       }
       setSelectedSaleIds([]);
-      setNotice(failCount ? `${okCount} deleted, ${failCount} failed.` : `${okCount} sale(s) deleted · stock restored.`);
+      setNotice(
+        failCount
+          ? `${okCount} deleted, ${failCount} failed.`
+          : restoresStock
+            ? `${okCount} sale(s) deleted · stock restored for stock-backed entries.`
+            : `${okCount} sale(s) deleted.`
+      );
       await loadMaster();
     } catch (err) {
       setError(err.message || "Bulk delete failed");
@@ -497,17 +769,54 @@ export default function AdminSalesPage() {
     setSelectedSaleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function toggleSelectAllSales() {
-    setSelectedSaleIds((prev) => (prev.length === history.length ? [] : history.map((h) => String(h._id))));
+  function toggleSelectAllInList(list) {
+    const ids = list.map((h) => String(h._id));
+    setSelectedSaleIds((prev) => {
+      const allSelected = ids.length > 0 && ids.every((id) => prev.includes(id));
+      if (allSelected) {
+        const removeSet = new Set(ids);
+        return prev.filter((x) => !removeSet.has(x));
+      }
+      const merged = new Set(prev);
+      ids.forEach((id) => merged.add(id));
+      return [...merged];
+    });
   }
 
   return (
     <div>
       <h1 className="text-2xl font-extrabold tracking-tight text-black">Sales entry</h1>
       <p className="mt-1 text-sm text-black/60">
-        Ledger only — same categories and stock as <strong>supplier purchases</strong>. Website shop is not used here.
-        Pick branch (folder) and model; only lines with stock from purchases are listed.
+        <strong>Sell from stock</strong> uses the same ledger lines as supplier purchases.
+        <strong> Sell without stock</strong> records a manual bill only — inventory is not reduced.
       </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setSaleMode("stock");
+            setError("");
+          }}
+          className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+            saleMode === "stock" ? "bg-black text-brand" : "border border-black/15 bg-white text-black/70 hover:bg-zinc-50"
+          }`}
+        >
+          Sell from stock
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSaleMode("manual");
+            setError("");
+          }}
+          className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+            saleMode === "manual" ? "bg-black text-brand" : "border border-black/15 bg-white text-black/70 hover:bg-zinc-50"
+          }`}
+        >
+          Sell without stock (manual bill)
+        </button>
+      </div>
 
       {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
       {notice ? <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</p> : null}
@@ -540,11 +849,19 @@ export default function AdminSalesPage() {
 
         <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
           <p className="text-sm font-bold text-black">Line items</p>
-          <p className="mt-1 text-xs text-black/50">
-            Choose <strong>ledger category</strong>, type <strong>branch</strong> (e.g. Oppo), search <strong>model</strong>,
-            optional <strong>signature</strong>, then select a line that has available qty from purchase entry.
-          </p>
+          {saleMode === "stock" ? (
+            <p className="mt-1 text-xs text-black/50">
+              Choose <strong>ledger category</strong>, type <strong>branch</strong> (e.g. Oppo), search <strong>model</strong>,
+              optional <strong>signature</strong>, then select a line that has available qty from purchase entry.
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-black/50">
+              Type <strong>branch / folder</strong> (optional) and <strong>model or description</strong> (required). This bill does{" "}
+              <strong>not</strong> reduce inventory.
+            </p>
+          )}
 
+          {saleMode === "stock" ? (
           <div className="mt-4 space-y-6">
             {rows.map((row, i) => (
               <div key={i} className="rounded-xl border border-black/10 bg-zinc-50/80 p-4">
@@ -720,17 +1037,103 @@ export default function AdminSalesPage() {
               </div>
             ))}
           </div>
+          ) : (
+          <div className="mt-4 space-y-6">
+            {manualRows.map((row, i) => (
+              <div key={i} className="rounded-xl border border-black/10 bg-zinc-50/80 p-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-black/45">Branch / folder (optional)</label>
+                    <input
+                      value={row.branch}
+                      onChange={(e) => updateManualRow(i, { branch: e.target.value })}
+                      placeholder="e.g. Oppo"
+                      list={`manual-branch-${i}`}
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                    <datalist id={`manual-branch-${i}`}>
+                      {filterSuggestionsByQuery(branchSuggestions, row.branch, 120).map((x) => (
+                        <option key={x} value={x} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-bold uppercase text-black/45">Model / description</label>
+                    <input
+                      required
+                      value={row.model}
+                      onChange={(e) => updateManualRow(i, { model: e.target.value })}
+                      placeholder="e.g. Display A23, Battery BLP-609"
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-black/45">Qty</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={row.quantity}
+                      onChange={(e) => updateManualRow(i, { quantity: Number(e.target.value || 0) })}
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-black/45">Amount (unit)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={row.unitPrice}
+                      onChange={(e) => updateManualRow(i, { unitPrice: Number(e.target.value || 0) })}
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-black/45">GST (optional)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={row.gstAmount}
+                      onChange={(e) => updateManualRow(i, { gstAmount: Number(e.target.value || 0) })}
+                      className="mt-1 w-full min-h-12 rounded-xl border border-black/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-black">
+                    Line: ₹
+                    {(
+                      Number(row.quantity || 0) * Number(row.unitPrice || 0) +
+                      Number(row.gstAmount || 0)
+                    ).toLocaleString("en-IN")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => removeManualRow(i)}
+                    className="rounded-full border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50"
+                  >
+                    Remove line
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          )}
 
           <button
             type="button"
-            onClick={addRow}
+            onClick={saleMode === "stock" ? addRow : addManualRow}
             className="mt-4 w-full min-h-12 rounded-xl border-2 border-dashed border-black/20 text-sm font-bold text-black/70 hover:border-brand hover:text-black sm:w-auto sm:px-6"
           >
             + Add line
           </button>
 
           <div className="mt-6 flex flex-col gap-3 border-t border-black/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-base font-black text-black">Grand total: ₹{grandTotal.toLocaleString("en-IN")}</p>
+            <p className="text-base font-black text-black">
+              Grand total: ₹
+              {(saleMode === "stock" ? grandTotal : grandTotalManual).toLocaleString("en-IN")}
+            </p>
             <button
               type="submit"
               disabled={saving}
@@ -756,6 +1159,11 @@ export default function AdminSalesPage() {
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-black">Sales history</h2>
+          <p className="mt-1 text-xs text-black/60">
+            <span className="font-semibold text-emerald-800">From stock: {historyFromStock.length}</span>
+            {" · "}
+            <span className="font-semibold text-violet-800">Manual: {historyManual.length}</span>
+          </p>
           {selectedSaleIds.length ? (
             <p className="text-xs font-semibold text-black/65">
               Selected: {selectedSaleIds.length} · Qty: {selectedSalesQty.toLocaleString("en-IN")} · Amount: ₹
@@ -780,99 +1188,48 @@ export default function AdminSalesPage() {
           >
             {bulkDeleting ? "Deleting…" : `Delete selected (${selectedSaleIds.length})`}
           </button>
-          <DownloadExports
-            filenameBase="sales"
-            title="Sales history"
-            subtitle="Ledger sales"
-            metaLines={[`Rows: ${exportRows.length}`]}
-            columns={exportColumns}
-            rows={exportRows}
-          />
         </div>
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-2xl border border-black/10 bg-white shadow-sm">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-black/10 bg-zinc-50 text-xs font-bold uppercase text-black/45">
-            <tr>
-              <th className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={allSalesSelected}
-                  onChange={toggleSelectAllSales}
-                  aria-label="Select all sales"
-                  className="h-4 w-4 rounded border-black/25"
-                />
-              </th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Products</th>
-              <th className="px-4 py-3">Items</th>
-              <th className="px-4 py-3">Qty</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5">
-            {history.map((h) => (
-              <tr key={h._id}>
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedSaleIds.includes(String(h._id))}
-                    onChange={() => toggleSaleSelection(h._id)}
-                    aria-label={`Select sale ${h._id}`}
-                    className="h-4 w-4 rounded border-black/25"
-                  />
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">{new Date(h.date).toLocaleDateString()}</td>
-                <td className="px-4 py-3 font-medium text-black">{h.customerLabel || "—"}</td>
-                <td className="px-4 py-3">
-                  <div className="max-w-md text-xs text-black/80">
-                    {(h.products || []).slice(0, 3).map((p, idx) => (
-                      <div key={idx}>
-                        {lineDescription(p)} × {Number(p.quantity || 0)}
-                      </div>
-                    ))}
-                    {(h.products || []).length > 3 ? (
-                      <div className="font-semibold text-black/50">+{(h.products || []).length - 3} more</div>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-3">{(h.products || []).length}</td>
-                <td className="px-4 py-3">
-                  {(h.products || []).reduce((sum, p) => sum + Number(p.quantity || 0), 0)}
-                </td>
-                <td className="px-4 py-3 font-bold">₹{Number(h.totalAmount || 0).toLocaleString("en-IN")}</td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(h)}
-                    className="mr-2 text-xs font-bold text-brand-dim hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeSale(h)}
-                    disabled={deletingId === h._id}
-                    className="mr-2 text-xs font-bold text-red-600 hover:underline disabled:opacity-50"
-                  >
-                    {deletingId === h._id ? "…" : "Delete"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => printBill(h)}
-                    className="text-xs font-bold text-black hover:underline"
-                  >
-                    Print
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {history.length === 0 ? <p className="p-8 text-center text-sm text-black/55">No sales yet.</p> : null}
+      <div className="mt-3 space-y-6">
+        <SalesHistorySection
+          title="Sales from stock"
+          hint="Ledger lines linked to purchase inventory."
+          emptyLabel="No sales from stock yet."
+          sales={historyFromStock}
+          exportFilenameBase="sales-from-stock"
+          exportTitle="Sales from stock"
+          exportSubtitle="Stock-backed sales"
+          exportColumns={exportColumns}
+          exportRows={exportRowsStock}
+          selectedSaleIds={selectedSaleIds}
+          onToggleRow={toggleSaleSelection}
+          onToggleSelectAll={() => toggleSelectAllInList(historyFromStock)}
+          allSelected={allStockSelected}
+          onEdit={openEdit}
+          onDelete={removeSale}
+          onPrint={printBill}
+          deletingId={deletingId}
+        />
+        <SalesHistorySection
+          title="Sales without stock (manual bills)"
+          hint="Recorded separately — does not change inventory."
+          emptyLabel="No manual bills yet."
+          sales={historyManual}
+          exportFilenameBase="sales-manual"
+          exportTitle="Manual sales"
+          exportSubtitle="Bills without stock"
+          exportColumns={exportColumns}
+          exportRows={exportRowsManual}
+          selectedSaleIds={selectedSaleIds}
+          onToggleRow={toggleSaleSelection}
+          onToggleSelectAll={() => toggleSelectAllInList(historyManual)}
+          allSelected={allManualSelected}
+          onEdit={openEdit}
+          onDelete={removeSale}
+          onPrint={printBill}
+          deletingId={deletingId}
+        />
       </div>
 
       {editingSale ? (
@@ -883,9 +1240,11 @@ export default function AdminSalesPage() {
           >
             <h3 className="text-lg font-bold text-black">Edit sale</h3>
             <p className="mt-1 text-xs text-black/50">
-              {editingSale.customerId
-                ? "This sale uses a saved customer. You can update date and line item values."
-                : "Update customer details, date, and line item values. Stock is recalculated automatically."}
+              {editingSale.fromStock === false
+                ? "Manual bill — editing lines does not affect inventory."
+                : editingSale.customerId
+                  ? "This sale uses a saved customer. You can update date and line item values."
+                  : "Update customer details, date, and line item values. Stock is recalculated automatically."}
             </p>
             <div className="mt-4 grid gap-3">
               {!editingSale.customerId ? (
@@ -925,10 +1284,44 @@ export default function AdminSalesPage() {
                 <div className="mt-2 space-y-2">
                   {editItems.map((line, i) => (
                     <div
-                      key={`${line.productId || line.stockGroupId || "row"}-${i}`}
+                      key={`${line.productId || line.stockGroupId || line.manualProductName || "row"}-${i}`}
                       className="rounded-xl border border-black/10 bg-zinc-50 p-3"
                     >
-                      <p className="text-xs font-semibold text-black/70">{line.label || "Line item"}</p>
+                      {editingSale.fromStock === false ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <label className="text-[11px] font-bold uppercase text-black/45">Branch (optional)</label>
+                            <input
+                              value={line.manualMobileName}
+                              onChange={(e) =>
+                                setEditItems((prev) =>
+                                  prev.map((x, idx) =>
+                                    idx === i ? { ...x, manualMobileName: e.target.value } : x
+                                  )
+                                )
+                              }
+                              className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold uppercase text-black/45">Model / description</label>
+                            <input
+                              required
+                              value={line.manualProductName}
+                              onChange={(e) =>
+                                setEditItems((prev) =>
+                                  prev.map((x, idx) =>
+                                    idx === i ? { ...x, manualProductName: e.target.value } : x
+                                  )
+                                )
+                              }
+                              className="mt-1 min-h-11 w-full rounded-lg border border-black/15 px-3 text-sm"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs font-semibold text-black/70">{line.label || "Line item"}</p>
+                      )}
                       <div className="mt-2 grid gap-2 sm:grid-cols-3">
                         <div>
                           <label className="text-[11px] font-bold uppercase text-black/45">Qty</label>

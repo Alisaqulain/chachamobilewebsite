@@ -51,6 +51,8 @@ export async function GET() {
       recentReturnLines,
       partsByMonth,
       salesByMonth,
+      salesFromStockByMonth,
+      salesManualByMonth,
       purchasedStockGroupIds,
     ] = await Promise.all([
       InventoryStockGroup.find().lean(),
@@ -111,12 +113,46 @@ export async function GET() {
         },
         { $sort: { _id: 1 } },
       ]),
+      Sale.aggregate([
+        {
+          $match: {
+            date: { $gte: twelveMonthsAgo },
+            $or: [{ fromStock: true }, { fromStock: { $exists: false } }],
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
+            amount: { $sum: "$totalAmount" },
+            bills: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      Sale.aggregate([
+        {
+          $match: {
+            date: { $gte: twelveMonthsAgo },
+            fromStock: false,
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$date", timezone: TZ } },
+            amount: { $sum: "$totalAmount" },
+            bills: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
       PartsPurchase.distinct("stockGroupId"),
     ]);
 
     const monthKeys = rollingMonthKeys(12);
     const pm = new Map(partsByMonth.map((x) => [x._id, x]));
     const sm = new Map(salesByMonth.map((x) => [x._id, x]));
+    const sStock = new Map(salesFromStockByMonth.map((x) => [x._id, x]));
+    const sManual = new Map(salesManualByMonth.map((x) => [x._id, x]));
     const monthlyOverview = monthKeys.map((month) => ({
       month,
       partsPurchaseTotal: Number(pm.get(month)?.amount || 0),
@@ -124,6 +160,10 @@ export async function GET() {
       partsUnits: Number(pm.get(month)?.units || 0),
       salesTotal: Number(sm.get(month)?.amount || 0),
       salesEntries: Number(sm.get(month)?.lines || 0),
+      salesFromStockTotal: Number(sStock.get(month)?.amount || 0),
+      salesFromStockBills: Number(sStock.get(month)?.bills || 0),
+      salesManualTotal: Number(sManual.get(month)?.amount || 0),
+      salesManualBills: Number(sManual.get(month)?.bills || 0),
     }));
     const cur = monthlyOverview[monthlyOverview.length - 1];
     const monthHighlights = {
@@ -132,6 +172,10 @@ export async function GET() {
       partsLines: cur?.partsLines ?? 0,
       salesTotal: cur?.salesTotal ?? 0,
       salesEntries: cur?.salesEntries ?? 0,
+      salesFromStockTotal: cur?.salesFromStockTotal ?? 0,
+      salesFromStockBills: cur?.salesFromStockBills ?? 0,
+      salesManualTotal: cur?.salesManualTotal ?? 0,
+      salesManualBills: cur?.salesManualBills ?? 0,
     };
 
     const purchasedGroupSet = new Set((purchasedStockGroupIds || []).filter(Boolean).map((id) => String(id)));

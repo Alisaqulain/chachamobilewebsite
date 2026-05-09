@@ -14,6 +14,8 @@ function serializeLine(r) {
   const gst = Number(r.gstAmount ?? 0);
   const sg = r.stockGroupId && typeof r.stockGroupId === "object" ? r.stockGroupId : null;
   const pr = r.productId && typeof r.productId === "object" ? r.productId : null;
+  const mm = String(r.manualMobileName || "").trim();
+  const mp = String(r.manualProductName || "").trim();
   return {
     productId: pr ? { _id: String(pr._id), name: pr.name || "" } : null,
     stockGroupId: sg
@@ -24,6 +26,8 @@ function serializeLine(r) {
           quality: sg.quality || "",
         }
       : null,
+    manualMobileName: mm,
+    manualProductName: mp,
     quantity: qty,
     price,
     gstAmount: gst,
@@ -52,6 +56,29 @@ function sanitizeLineItems(input) {
     out.push({
       productId: hasP ? new mongoose.Types.ObjectId(pid) : null,
       stockGroupId: hasG ? new mongoose.Types.ObjectId(gid) : null,
+      quantity,
+      price,
+      gstAmount,
+    });
+  }
+  return out;
+}
+
+function sanitizeManualLineItems(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  for (const x of input) {
+    const mobile = String(x?.manualMobileName ?? "").trim();
+    const product = String(x?.manualProductName ?? "").trim();
+    if (!product) continue;
+    const quantity = Number(x?.quantity ?? 0);
+    const price = Number(x?.price ?? 0);
+    const gstAmount = Math.max(0, Number(x?.gstAmount ?? 0));
+    if (!Number.isFinite(quantity) || quantity < 1) continue;
+    if (!Number.isFinite(price) || price < 0) continue;
+    out.push({
+      manualMobileName: mobile,
+      manualProductName: product,
       quantity,
       price,
       gstAmount,
@@ -93,6 +120,7 @@ export async function GET(request, context) {
     if (!s) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const sale = {
       _id: String(s._id),
+      fromStock: s.fromStock !== false,
       customerId: s.customerId
         ? { _id: String(s.customerId._id), name: s.customerId.name, phone: s.customerId.phone || "" }
         : null,
@@ -144,105 +172,133 @@ export async function PUT(request, context) {
 
     let nextProducts = null;
     if (Array.isArray(body?.products)) {
-      nextProducts = sanitizeLineItems(body.products);
-      if (!nextProducts.length) {
-        return NextResponse.json({ error: "Add at least one valid line item" }, { status: 400 });
-      }
+      const isManualSale = prev.fromStock === false;
 
-      const prevProducts = Array.isArray(prev.products) ? prev.products : [];
-      const prevByKey = aggregateQtyByKey(prevProducts);
-      const nextByKey = aggregateQtyByKey(nextProducts);
-
-      const allKeys = new Set([...prevByKey.keys(), ...nextByKey.keys()]);
-      const shopDeltas = [];
-      const groupDeltas = [];
-      for (const key of allKeys) {
-        const prevQty = Number(prevByKey.get(key) || 0);
-        const nextQty = Number(nextByKey.get(key) || 0);
-        const diff = nextQty - prevQty;
-        if (!diff) continue;
-        if (key.startsWith("p:")) {
-          const productId = key.slice(2);
-          shopDeltas.push({ productId, diff, prevQty, nextQty });
-        } else if (key.startsWith("g:")) {
-          const stockGroupId = key.slice(2);
-          groupDeltas.push({ stockGroupId, diff, prevQty, nextQty });
+      if (isManualSale) {
+        nextProducts = sanitizeManualLineItems(body.products);
+        if (!nextProducts.length) {
+          return NextResponse.json({ error: "Add at least one valid manual line (model / description)" }, { status: 400 });
         }
-      }
+        await Sale.updateOne(
+          { _id: id },
+          {
+            $set: {
+              products: nextProducts.map((r) => ({
+                productId: null,
+                stockGroupId: null,
+                manualMobileName: r.manualMobileName,
+                manualProductName: r.manualProductName,
+                quantity: r.quantity,
+                price: r.price,
+                gstAmount: r.gstAmount,
+              })),
+              totalAmount: nextProducts.reduce((sum, r) => sum + lineTotal(r), 0),
+            },
+          }
+        );
+      } else {
+        nextProducts = sanitizeLineItems(body.products);
+        if (!nextProducts.length) {
+          return NextResponse.json({ error: "Add at least one valid line item" }, { status: 400 });
+        }
 
-      if (shopDeltas.length) {
-        const products = await Product.find({
-          _id: { $in: shopDeltas.map((x) => new mongoose.Types.ObjectId(x.productId)) },
-        }).lean();
-        const productsMap = new Map(products.map((p) => [String(p._id), p]));
-        for (const row of shopDeltas) {
-          const p = productsMap.get(String(row.productId));
-          if (!p) return NextResponse.json({ error: "One or more products not found" }, { status: 400 });
-          const availableAfterRevert = Number(p.stock || 0) + row.prevQty;
-          if (availableAfterRevert < row.nextQty) {
-            return NextResponse.json(
-              { error: `Insufficient stock for ${p.name}. Available: ${availableAfterRevert}` },
-              { status: 400 }
-            );
+        const prevProducts = Array.isArray(prev.products) ? prev.products : [];
+        const prevByKey = aggregateQtyByKey(prevProducts);
+        const nextByKey = aggregateQtyByKey(nextProducts);
+
+        const allKeys = new Set([...prevByKey.keys(), ...nextByKey.keys()]);
+        const shopDeltas = [];
+        const groupDeltas = [];
+        for (const key of allKeys) {
+          const prevQty = Number(prevByKey.get(key) || 0);
+          const nextQty = Number(nextByKey.get(key) || 0);
+          const diff = nextQty - prevQty;
+          if (!diff) continue;
+          if (key.startsWith("p:")) {
+            const productId = key.slice(2);
+            shopDeltas.push({ productId, diff, prevQty, nextQty });
+          } else if (key.startsWith("g:")) {
+            const stockGroupId = key.slice(2);
+            groupDeltas.push({ stockGroupId, diff, prevQty, nextQty });
           }
         }
-      }
 
-      if (groupDeltas.length) {
-        const groups = await InventoryStockGroup.find({
-          _id: { $in: groupDeltas.map((x) => new mongoose.Types.ObjectId(x.stockGroupId)) },
-        }).lean();
-        const groupsMap = new Map(groups.map((g) => [String(g._id), g]));
+        if (shopDeltas.length) {
+          const products = await Product.find({
+            _id: { $in: shopDeltas.map((x) => new mongoose.Types.ObjectId(x.productId)) },
+          }).lean();
+          const productsMap = new Map(products.map((p) => [String(p._id), p]));
+          for (const row of shopDeltas) {
+            const p = productsMap.get(String(row.productId));
+            if (!p) return NextResponse.json({ error: "One or more products not found" }, { status: 400 });
+            const availableAfterRevert = Number(p.stock || 0) + row.prevQty;
+            if (availableAfterRevert < row.nextQty) {
+              return NextResponse.json(
+                { error: `Insufficient stock for ${p.name}. Available: ${availableAfterRevert}` },
+                { status: 400 }
+              );
+            }
+          }
+        }
+
+        if (groupDeltas.length) {
+          const groups = await InventoryStockGroup.find({
+            _id: { $in: groupDeltas.map((x) => new mongoose.Types.ObjectId(x.stockGroupId)) },
+          }).lean();
+          const groupsMap = new Map(groups.map((g) => [String(g._id), g]));
+          for (const row of groupDeltas) {
+            const g = groupsMap.get(String(row.stockGroupId));
+            if (!g) return NextResponse.json({ error: "One or more inventory lines not found" }, { status: 400 });
+            const availableAfterRevert = netStock(g) + row.prevQty;
+            if (availableAfterRevert < row.nextQty) {
+              return NextResponse.json(
+                {
+                  error: `Insufficient ledger stock for ${g.mobileName} — ${g.productName} (${g.quality}). Available: ${availableAfterRevert}`,
+                },
+                { status: 400 }
+              );
+            }
+          }
+        }
+
+        if (shopDeltas.length) {
+          await applyStockDeltas(
+            shopDeltas.map((row) => ({
+              productId: row.productId,
+              delta: -row.diff,
+              reason: "manual",
+              refModel: "Sale",
+              refId: prev._id,
+              note: "Sale edited",
+            }))
+          );
+        }
+
         for (const row of groupDeltas) {
-          const g = groupsMap.get(String(row.stockGroupId));
-          if (!g) return NextResponse.json({ error: "One or more inventory lines not found" }, { status: 400 });
-          const availableAfterRevert = netStock(g) + row.prevQty;
-          if (availableAfterRevert < row.nextQty) {
-            return NextResponse.json(
-              {
-                error: `Insufficient ledger stock for ${g.mobileName} — ${g.productName} (${g.quality}). Available: ${availableAfterRevert}`,
-              },
-              { status: 400 }
-            );
+          await InventoryStockGroup.updateOne(
+            { _id: new mongoose.Types.ObjectId(row.stockGroupId) },
+            { $inc: { soldQty: row.diff } }
+          );
+        }
+
+        await Sale.updateOne(
+          { _id: id },
+          {
+            $set: {
+              products: nextProducts.map((r) => ({
+                productId: r.productId || null,
+                stockGroupId: r.stockGroupId || null,
+                manualMobileName: "",
+                manualProductName: "",
+                quantity: r.quantity,
+                price: r.price,
+                gstAmount: r.gstAmount,
+              })),
+              totalAmount: nextProducts.reduce((sum, r) => sum + lineTotal(r), 0),
+            },
           }
-        }
-      }
-
-      if (shopDeltas.length) {
-        await applyStockDeltas(
-          shopDeltas.map((row) => ({
-            productId: row.productId,
-            delta: -row.diff,
-            reason: "manual",
-            refModel: "Sale",
-            refId: prev._id,
-            note: "Sale edited",
-          }))
         );
       }
-
-      for (const row of groupDeltas) {
-        await InventoryStockGroup.updateOne(
-          { _id: new mongoose.Types.ObjectId(row.stockGroupId) },
-          { $inc: { soldQty: row.diff } }
-        );
-      }
-
-      await Sale.updateOne(
-        { _id: id },
-        {
-          $set: {
-            products: nextProducts.map((r) => ({
-              productId: r.productId || null,
-              stockGroupId: r.stockGroupId || null,
-              quantity: r.quantity,
-              price: r.price,
-              gstAmount: r.gstAmount,
-            })),
-            totalAmount: nextProducts.reduce((sum, r) => sum + lineTotal(r), 0),
-          },
-        }
-      );
     }
 
     const updated = await Sale.findById(id)
@@ -252,6 +308,7 @@ export async function PUT(request, context) {
       .lean();
     const sale = {
       _id: String(updated._id),
+      fromStock: updated.fromStock !== false,
       customerId: updated.customerId
         ? { _id: String(updated.customerId._id), name: updated.customerId.name, phone: updated.customerId.phone || "" }
         : null,

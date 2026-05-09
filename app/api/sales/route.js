@@ -39,12 +39,38 @@ function sanitizeLineItems(input) {
   return out;
 }
 
+/** Manual bill lines: typed branch + model, no stock link. */
+function sanitizeManualLineItems(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  for (const x of input) {
+    const mobile = String(x?.manualMobileName ?? "").trim();
+    const product = String(x?.manualProductName ?? "").trim();
+    if (!product) continue;
+    const quantity = Number(x?.quantity ?? 0);
+    const price = Number(x?.price ?? 0);
+    const gstAmount = Math.max(0, Number(x?.gstAmount ?? 0));
+    if (!Number.isFinite(quantity) || quantity < 1) continue;
+    if (!Number.isFinite(price) || price < 0) continue;
+    out.push({
+      manualMobileName: mobile,
+      manualProductName: product,
+      quantity,
+      price,
+      gstAmount,
+    });
+  }
+  return out;
+}
+
 function serializeLine(r) {
   const qty = Number(r.quantity || 0);
   const price = Number(r.price || 0);
   const gst = Number(r.gstAmount ?? 0);
   const sg = r.stockGroupId && typeof r.stockGroupId === "object" ? r.stockGroupId : null;
   const pr = r.productId && typeof r.productId === "object" ? r.productId : null;
+  const mm = String(r.manualMobileName || "").trim();
+  const mp = String(r.manualProductName || "").trim();
   return {
     productId: pr ? { _id: String(pr._id), name: pr.name || "" } : null,
     stockGroupId: sg
@@ -55,6 +81,8 @@ function serializeLine(r) {
           quality: sg.quality || "",
         }
       : null,
+    manualMobileName: mm,
+    manualProductName: mp,
     quantity: qty,
     price,
     gstAmount: gst,
@@ -76,6 +104,7 @@ export async function GET() {
       .lean();
     const sales = rows.map((s) => ({
       _id: String(s._id),
+      fromStock: s.fromStock !== false,
       customerId: s.customerId
         ? { _id: String(s.customerId._id), name: s.customerId.name, phone: s.customerId.phone || "" }
         : null,
@@ -106,13 +135,23 @@ export async function POST(request) {
     const walkInName = String(body?.walkInName ?? "").trim();
     const walkInPhone = String(body?.walkInPhone ?? "").trim();
     const date = body?.date ? new Date(body.date) : new Date();
-    const items = sanitizeLineItems(body?.products);
+    const fromStock = body?.fromStock !== false;
+    const stockItems = fromStock ? sanitizeLineItems(body?.products) : [];
+    const manualItems = !fromStock ? sanitizeManualLineItems(body?.products) : [];
+    const items = fromStock ? stockItems : manualItems;
     const useSavedCustomer = Boolean(customerIdRaw && mongoose.Types.ObjectId.isValid(customerIdRaw));
     if (!useSavedCustomer && customerIdRaw) {
       return NextResponse.json({ error: "Select a valid customer or clear the field for walk-in" }, { status: 400 });
     }
     if (!items.length) {
-      return NextResponse.json({ error: "Add at least one line with a ledger row or product" }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: fromStock
+            ? "Add at least one line with a ledger row or product"
+            : "Add at least one manual line with model / description",
+        },
+        { status: 400 }
+      );
     }
     if (!useSavedCustomer) {
       if (!walkInName) return NextResponse.json({ error: "Customer name is required" }, { status: 400 });
@@ -127,41 +166,87 @@ export async function POST(request) {
       customerId = customer._id;
     }
 
-    const shopItems = items.filter((x) => x.productId);
-    const partsItems = items.filter((x) => x.stockGroupId);
+    if (fromStock) {
+      const shopItems = stockItems.filter((x) => x.productId);
+      const partsItems = stockItems.filter((x) => x.stockGroupId);
 
-    if (shopItems.length) {
-      const productsMap = await getProductsMapByIds(shopItems.map((x) => String(x.productId)));
-      for (const row of shopItems) {
-        const p = productsMap.get(String(row.productId));
-        if (!p) return NextResponse.json({ error: "One or more products not found" }, { status: 400 });
-        if (Number(p.stock || 0) < Number(row.quantity || 0)) {
-          return NextResponse.json({ error: `Insufficient stock for ${p.name}` }, { status: 400 });
+      if (shopItems.length) {
+        const productsMap = await getProductsMapByIds(shopItems.map((x) => String(x.productId)));
+        for (const row of shopItems) {
+          const p = productsMap.get(String(row.productId));
+          if (!p) return NextResponse.json({ error: "One or more products not found" }, { status: 400 });
+          if (Number(p.stock || 0) < Number(row.quantity || 0)) {
+            return NextResponse.json({ error: `Insufficient stock for ${p.name}` }, { status: 400 });
+          }
         }
       }
-    }
 
-    for (const row of partsItems) {
-      const g = await InventoryStockGroup.findById(row.stockGroupId).lean();
-      if (!g) return NextResponse.json({ error: "One or more inventory lines not found" }, { status: 400 });
-      const avail = netStock(g);
-      if (avail < Number(row.quantity || 0)) {
-        return NextResponse.json(
-          {
-            error: `Insufficient ledger stock for ${g.mobileName} — ${g.productName} (${g.quality}). Available: ${avail}`,
-          },
-          { status: 400 }
+      for (const row of partsItems) {
+        const g = await InventoryStockGroup.findById(row.stockGroupId).lean();
+        if (!g) return NextResponse.json({ error: "One or more inventory lines not found" }, { status: 400 });
+        const avail = netStock(g);
+        if (avail < Number(row.quantity || 0)) {
+          return NextResponse.json(
+            {
+              error: `Insufficient ledger stock for ${g.mobileName} — ${g.productName} (${g.quality}). Available: ${avail}`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      const sale = await Sale.create({
+        fromStock: true,
+        customerId,
+        walkInName: useSavedCustomer ? "" : walkInName,
+        walkInPhone: useSavedCustomer ? "" : walkInPhone,
+        products: stockItems.map((r) => ({
+          productId: r.productId || null,
+          stockGroupId: r.stockGroupId || null,
+          manualMobileName: "",
+          manualProductName: "",
+          quantity: r.quantity,
+          price: r.price,
+          gstAmount: r.gstAmount,
+        })),
+        totalAmount,
+        date,
+      });
+
+      if (shopItems.length) {
+        await applyStockDeltas(
+          shopItems.map((r) => ({
+            productId: r.productId,
+            delta: -Number(r.quantity || 0),
+            reason: "sale",
+            refModel: "Sale",
+            refId: sale._id,
+            note: "Sales entry",
+          }))
         );
       }
+
+      await incrementSoldQtyForSaleLineItems(
+        stockItems.map((r) => ({
+          productId: r.productId ? String(r.productId) : "",
+          stockGroupId: r.stockGroupId ? String(r.stockGroupId) : "",
+          quantity: r.quantity,
+        }))
+      );
+
+      return NextResponse.json({ ok: true, saleId: String(sale._id) });
     }
 
     const sale = await Sale.create({
+      fromStock: false,
       customerId,
       walkInName: useSavedCustomer ? "" : walkInName,
       walkInPhone: useSavedCustomer ? "" : walkInPhone,
-      products: items.map((r) => ({
-        productId: r.productId || null,
-        stockGroupId: r.stockGroupId || null,
+      products: manualItems.map((r) => ({
+        productId: null,
+        stockGroupId: null,
+        manualMobileName: r.manualMobileName,
+        manualProductName: r.manualProductName,
         quantity: r.quantity,
         price: r.price,
         gstAmount: r.gstAmount,
@@ -169,27 +254,6 @@ export async function POST(request) {
       totalAmount,
       date,
     });
-
-    if (shopItems.length) {
-      await applyStockDeltas(
-        shopItems.map((r) => ({
-          productId: r.productId,
-          delta: -Number(r.quantity || 0),
-          reason: "sale",
-          refModel: "Sale",
-          refId: sale._id,
-          note: "Sales entry",
-        }))
-      );
-    }
-
-    await incrementSoldQtyForSaleLineItems(
-      items.map((r) => ({
-        productId: r.productId ? String(r.productId) : "",
-        stockGroupId: r.stockGroupId ? String(r.stockGroupId) : "",
-        quantity: r.quantity,
-      }))
-    );
 
     return NextResponse.json({ ok: true, saleId: String(sale._id) });
   } catch (e) {

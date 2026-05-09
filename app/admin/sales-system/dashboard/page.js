@@ -396,7 +396,7 @@ export default function SalesSystemDashboardPage() {
       </section>
 
       {/* This month */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-blue-900/70">Parts purchased (this month)</p>
           <p className="mt-2 text-2xl font-black text-blue-950">
@@ -404,12 +404,21 @@ export default function SalesSystemDashboardPage() {
           </p>
           <p className="mt-1 text-xs text-blue-900/65">{mh?.month ? formatMonthKey(mh.month) : "—"} · {mh?.partsLines ?? 0} lines</p>
         </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-900/70">Sales (this month)</p>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm lg:col-span-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-900/70">Sales — from stock (this month)</p>
           <p className="mt-2 text-2xl font-black text-emerald-950">
-            ₹{Number(mh?.salesTotal ?? 0).toLocaleString("en-IN")}
+            ₹{Number(mh?.salesFromStockTotal ?? 0).toLocaleString("en-IN")}
           </p>
-          <p className="mt-1 text-xs text-emerald-900/65">{mh?.month ? formatMonthKey(mh.month) : "—"} · {mh?.salesEntries ?? 0} entries</p>
+          <p className="mt-1 text-xs text-emerald-900/65">
+            {mh?.month ? formatMonthKey(mh.month) : "—"} · {mh?.salesFromStockBills ?? 0} bills · deducts inventory
+          </p>
+          <div className="mt-4 border-t border-emerald-200/80 pt-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-900/70">Sales — without stock (manual)</p>
+            <p className="mt-1 text-xl font-black text-violet-950">
+              ₹{Number(mh?.salesManualTotal ?? 0).toLocaleString("en-IN")}
+            </p>
+            <p className="mt-1 text-xs text-violet-900/65">{mh?.salesManualBills ?? 0} bills · bill only</p>
+          </div>
         </div>
         <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-black/45">Parts stock (net units)</p>
@@ -438,9 +447,11 @@ export default function SalesSystemDashboardPage() {
               <tr>
                 <th className="px-3 py-2">Month</th>
                 <th className="px-3 py-2">Parts purchased ₹</th>
-                <th className="px-3 py-2">Sales ₹</th>
-                <th className="px-3 py-2">Lines</th>
-                <th className="px-3 py-2">Sales entries</th>
+                <th className="px-3 py-2">Sales from stock ₹</th>
+                <th className="px-3 py-2">Sales manual ₹</th>
+                <th className="px-3 py-2">Parts lines</th>
+                <th className="px-3 py-2">Bills (stock)</th>
+                <th className="px-3 py-2">Bills (manual)</th>
                 <th className="px-3 py-2">Units in</th>
               </tr>
             </thead>
@@ -449,9 +460,11 @@ export default function SalesSystemDashboardPage() {
                 <tr key={row.month} className={row.month === mh?.month ? "bg-brand/10" : ""}>
                   <td className="px-3 py-2 font-medium text-black">{formatMonthKey(row.month)}</td>
                   <td className="px-3 py-2 tabular-nums">₹{Number(row.partsPurchaseTotal || 0).toLocaleString("en-IN")}</td>
-                  <td className="px-3 py-2 tabular-nums">₹{Number(row.salesTotal || 0).toLocaleString("en-IN")}</td>
+                  <td className="px-3 py-2 tabular-nums">₹{Number(row.salesFromStockTotal || 0).toLocaleString("en-IN")}</td>
+                  <td className="px-3 py-2 tabular-nums">₹{Number(row.salesManualTotal || 0).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2 tabular-nums">{row.partsLines}</td>
-                  <td className="px-3 py-2 tabular-nums">{row.salesEntries}</td>
+                  <td className="px-3 py-2 tabular-nums">{row.salesFromStockBills ?? 0}</td>
+                  <td className="px-3 py-2 tabular-nums">{row.salesManualBills ?? 0}</td>
                   <td className="px-3 py-2 tabular-nums">{row.partsUnits}</td>
                 </tr>
               ))}
