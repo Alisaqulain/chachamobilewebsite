@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import FooterNavColumns from "@/components/FooterNavColumns";
+import { INSTAGRAM_URL, WHATSAPP_UPDATES_CHANNEL_URL } from "@/lib/site-config";
+import { buildWhatsAppUrl } from "@/utils/whatsapp";
 
 const policies = [
   { href: "/terms", label: "Terms" },
@@ -8,6 +10,10 @@ const policies = [
   { href: "/shipping", label: "Shipping" },
   { href: "/refund", label: "Returns" },
 ];
+
+const waFooter = buildWhatsAppUrl(
+  "Hello Chacha Mobile, I want mobile spare parts (UP). Please share price list and dispatch options."
+);
 
 export default function Footer() {
   return (
@@ -37,11 +43,20 @@ export default function Footer() {
             </div>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-white/60">
               Displays, batteries, charging systems, cameras, and body components — curated for
-              technicians and shops who care about finish and reliability.
+              technicians and shops who care about finish and reliability.{" "}
+              <span className="font-medium text-white/75">
+                Delivery &amp; dispatch focused on Uttar Pradesh (Muzaffarnagar, Meerut, Shamli &amp;
+                nearby).
+              </span>
             </p>
-            <div className="mt-6 flex gap-3">
+            <ul className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-wide text-white/55">
+              <li className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1">QC-checked picks</li>
+              <li className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1">GST support</li>
+              <li className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1">India-first logistics</li>
+            </ul>
+            <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href="https://wa.me/918126162661"
+                href={waFooter}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="icon-3d-hover inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-[#25D366] hover:text-white"
@@ -66,7 +81,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="https://www.instagram.com"
+                href={INSTAGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="icon-3d-hover inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 transition hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:text-white"
@@ -75,6 +90,15 @@ export default function Footer() {
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                 </svg>
+              </a>
+              <a
+                href={WHATSAPP_UPDATES_CHANNEL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="icon-3d-hover inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-3 text-[11px] font-bold uppercase tracking-wide text-white/90 transition hover:bg-[#25D366] hover:text-white"
+                aria-label="WhatsApp channel updates"
+              >
+                Channel
               </a>
             </div>
           </div>
@@ -118,6 +142,21 @@ export default function Footer() {
                 <li>
                   <Link href="/contact" className="transition hover:text-white">
                     Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/mobile-spare-parts-muzaffarnagar" className="transition hover:text-white">
+                    Muzaffarnagar
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/mobile-spare-parts-meerut" className="transition hover:text-white">
+                    Meerut
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/mobile-spare-parts-shamli" className="transition hover:text-white">
+                    Shamli
                   </Link>
                 </li>
               </ul>

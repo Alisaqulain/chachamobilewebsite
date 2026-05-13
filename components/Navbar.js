@@ -506,6 +506,31 @@ export default function Navbar() {
                 </Link>
                 <div className="mx-5 my-2 border-t border-white/10" />
                 <p className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  Service area (UP)
+                </p>
+                <Link
+                  href="/mobile-spare-parts-muzaffarnagar"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-11 px-5 py-3 text-sm text-white/75 active:bg-white/10"
+                >
+                  Muzaffarnagar spare parts
+                </Link>
+                <Link
+                  href="/mobile-spare-parts-meerut"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-11 px-5 py-3 text-sm text-white/75 active:bg-white/10"
+                >
+                  Meerut repair parts
+                </Link>
+                <Link
+                  href="/mobile-spare-parts-shamli"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block min-h-11 px-5 py-3 text-sm text-white/75 active:bg-white/10"
+                >
+                  Shamli display shop
+                </Link>
+                <div className="mx-5 my-2 border-t border-white/10" />
+                <p className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-white/40">
                   Categories
                 </p>
                 {navCategories.map((c) => (

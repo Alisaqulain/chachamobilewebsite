@@ -1,10 +1,14 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { buildWhatsAppUrl } from "@/utils/whatsapp";
 
 export default function WhatsAppFloat() {
+  const pathname = usePathname() || "";
+  if (pathname.startsWith("/admin")) return null;
+
   const href = buildWhatsAppUrl(
-    "Hello Chacha Mobile, I would like to know more about your spare parts."
+    "Hello Chacha Mobile, I want mobile spare parts in Uttar Pradesh. Please share stock, price and dispatch time."
   );
 
   return (
