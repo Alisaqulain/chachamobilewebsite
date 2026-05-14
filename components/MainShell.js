@@ -10,11 +10,13 @@ export default function MainShell({ children }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isAdmin = pathname.startsWith("/admin");
-  const fabPad = !isAdmin ? "max-md:pb-28" : "";
+  /** Space for mobile/tablet conversion dock (see ConversionProvider). */
+  const dockPad =
+    !isAdmin ? "max-lg:pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]" : "";
 
   return (
     <main
-      className={`flex flex-1 flex-col ${fabPad} ${
+      className={`flex flex-1 flex-col ${dockPad} ${
         isHome ? "pt-0" : "pt-[calc(4.5rem+env(safe-area-inset-top,0px))]"
       }`}
     >

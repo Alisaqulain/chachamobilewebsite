@@ -63,7 +63,8 @@ export default function HeroSlider() {
             muted
             loop
             playsInline
-            preload="auto"
+            preload="metadata"
+            poster="/display.jpg"
             aria-hidden
           >
             <source src={HERO_VIDEO_SRC} type="video/mp4" />
@@ -144,7 +145,7 @@ export default function HeroSlider() {
                       className="mx-auto mb-6 h-px max-w-xs bg-gradient-to-r from-transparent via-white/20 to-transparent"
                     />
                     <ul className="flex flex-wrap justify-center gap-2 sm:gap-2.5" aria-label="Highlights">
-                      {["QC-checked picks", "Grade on invoice", "Human WhatsApp desk"].map((tag) => (
+                      {["Premium QC", "GST-ready billing", "UP-first dispatch"].map((tag) => (
                         <li
                           key={tag}
                           className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.06] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl sm:px-4 sm:text-[11px] sm:tracking-[0.16em]"
@@ -176,8 +177,27 @@ export default function HeroSlider() {
                       rel="noopener noreferrer"
                       className="btn-3d-pop inline-flex min-h-[52px] min-w-[158px] items-center justify-center rounded-full border border-white/25 bg-white/[0.07] px-9 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition duration-300 hover:border-brand/50 hover:bg-white/[0.12] hover:shadow-[0_0_32px_rgba(255,102,0,0.12)] active:scale-[0.98]"
                     >
-                      WhatsApp
+                      WhatsApp order
                     </a>
+                  </motion.div>
+
+                  <motion.div
+                    variants={staggerItem}
+                    className="mt-8 flex w-full max-w-xl flex-col items-center gap-3 sm:mt-10"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/40">
+                      Priority lanes · Uttar Pradesh
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {["Muzaffarnagar", "Meerut", "Shamli", "Western UP", "Wholesale B2B"].map((city) => (
+                        <span
+                          key={city}
+                          className="rounded-full border border-white/12 bg-black/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-md"
+                        >
+                          {city}
+                        </span>
+                      ))}
+                    </div>
                   </motion.div>
                 </motion.div>
               </motion.div>

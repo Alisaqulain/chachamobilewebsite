@@ -1,12 +1,17 @@
 "use client";
 
 import HeroSlider from "@/components/HeroSlider";
+import HomeDeliveryMarquee from "@/components/home/HomeDeliveryMarquee";
 import HomeCategoryMega from "@/components/home/HomeCategoryMega";
+import HomeProductLanes from "@/components/home/HomeProductLanes";
 import HomeBrandShowcase from "@/components/home/HomeBrandShowcase";
 import HomeProductShowcaseCard from "@/components/home/HomeProductShowcaseCard";
 import HomeWhyChoose from "@/components/home/HomeWhyChoose";
 import HomeServiceFlow from "@/components/home/HomeServiceFlow";
 import HomeStatsRibbon from "@/components/home/HomeStatsRibbon";
+import HomeTrustDelivery from "@/components/home/HomeTrustDelivery";
+import HomeFaqAccordion from "@/components/home/HomeFaqAccordion";
+import HomeInstagramCta from "@/components/home/HomeInstagramCta";
 import Testimonials from "@/components/Testimonials";
 import { MOCK_PRODUCTS } from "@/data/mockData";
 import { motion } from "framer-motion";
@@ -39,16 +44,20 @@ export default function HomePage() {
     })();
   }, []);
   const wa = buildWhatsAppUrl(
-    "Hello Chacha Mobile, I need premium spare parts — please share stock and pricing."
+    "Hello Chacha Mobile, I need premium spare parts for my shop in UP — please share stock, grades, and dispatch time."
   );
 
   return (
     <div className="flex flex-1 flex-col overflow-x-hidden bg-transparent">
       <HeroSlider />
 
+      <HomeDeliveryMarquee />
+
       <HomeStatsRibbon />
 
       <HomeCategoryMega />
+
+      <HomeProductLanes />
 
       <section className="relative overflow-hidden bg-gradient-to-b from-zinc-900 via-zinc-900 to-black py-16 sm:py-20 lg:py-28">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_45%_at_50%_0%,rgba(255,102,0,0.12),transparent)]" />
@@ -80,20 +89,21 @@ export default function HomePage() {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-brand shadow-[0_0_8px_rgba(255,102,0,0.9)]" />
                   </span>
                   <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-brand">
-                    Spotlight
+                    Trending now
                   </span>
                 </span>
                 <h2 className="font-display mt-5 text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.75rem] lg:leading-[1.08]">
                   <span className="text-white">Featured </span>
                   <span className="bg-gradient-to-r from-brand via-brand-bright to-amber-200 bg-clip-text text-transparent">
-                    picks
+                    catalogue picks
                   </span>
                 </h2>
                 <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/70 sm:text-base">
-                  Hand-picked SKUs from the catalogue — clear pricing, add to cart or WhatsApp in one tap.
+                  Live-linked when stock syncs — transparent pricing, one-tap WhatsApp lines, and grades you can
+                  defend at the counter.
                 </p>
                 <ul className="mt-6 flex flex-wrap gap-2 sm:gap-2.5">
-                  {["Transparent pricing", "Same-day dispatch", "Human WhatsApp support"].map((label) => (
+                  {["QC photos on request", "Invoice-grade labels", "B2B friendly desk"].map((label) => (
                     <li
                       key={label}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 backdrop-blur-sm sm:text-xs"
@@ -115,17 +125,17 @@ export default function HomePage() {
               className="flex shrink-0 flex-col gap-3 lg:items-end"
             >
               <p className="text-left text-xs font-medium text-white/45 sm:max-w-md lg:max-w-[14rem] lg:text-right">
-                Showing <span className="font-bold text-white/70">{showcase.length}</span> curated listings
-                — refreshed from live stock when available.
+                Showing <span className="font-bold text-white/70">{showcase.length}</span> hand-picked SKUs
+                — swap models weekly based on demand.
               </p>
               <Link
                 href="/shop"
                 className="btn-3d-pop inline-flex min-h-[48px] min-w-[200px] items-center justify-center self-start rounded-full border-2 border-brand bg-brand px-8 py-3.5 text-sm font-bold text-black shadow-[0_4px_24px_rgba(255,102,0,0.35)] transition hover:border-brand-bright hover:bg-brand-bright hover:shadow-[0_8px_40px_rgba(255,102,0,0.45)] lg:self-end"
               >
-                View full catalogue
+                Open full shop
               </Link>
               <p className="text-left text-[11px] leading-snug text-white/35 sm:max-w-md lg:max-w-[14rem] lg:text-right">
-                On the shop page you can filter by brand, model, and part type.
+                Filters sync to the URL — share a link with your junior tech and keep the same view.
               </p>
             </motion.div>
           </div>
@@ -145,11 +155,17 @@ export default function HomePage() {
 
       <HomeBrandShowcase />
 
+      <HomeTrustDelivery />
+
       <HomeServiceFlow />
 
       <HomeWhyChoose />
 
       <Testimonials />
+
+      <HomeInstagramCta />
+
+      <HomeFaqAccordion />
 
       <section className="relative w-full overflow-hidden py-16 sm:py-24 lg:py-28">
         <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand-dim to-black" />
@@ -163,7 +179,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="font-display text-[clamp(2rem,5vw,3.5rem)] font-black leading-tight tracking-tight text-black drop-shadow-sm"
           >
-            Need mobile parts?
+            Ready when your bench is hot
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -172,22 +188,32 @@ export default function HomePage() {
             transition={{ duration: 0.45, delay: 0.08 }}
             className="mx-auto mt-5 max-w-xl text-base font-medium text-black/80 sm:text-lg"
           >
-            WhatsApp us for stock checks, compatibility, and same-day dispatch — a human replies, not a bot.
+            WhatsApp for stock, grades, and dispatch — humans who understand flex routing and customer deadlines.
           </motion.p>
-          <motion.a
-            href={wa}
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.div
             initial={{ opacity: 0, scale: 0.92 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: 0.15 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            className="btn-3d-pop mt-10 inline-flex min-h-[56px] min-w-[220px] items-center justify-center rounded-full bg-black px-10 text-base font-bold text-brand shadow-[0_0_0_0_rgba(0,0,0,0.4)] ring-4 ring-black/30 transition hover:shadow-[0_0_60px_rgba(0,0,0,0.55)]"
+            className="mt-10 flex flex-wrap items-center justify-center gap-3"
           >
-            Order on WhatsApp
-          </motion.a>
+            <motion.a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-3d-pop inline-flex min-h-[56px] min-w-[220px] items-center justify-center rounded-full bg-black px-10 text-base font-bold text-brand shadow-[0_0_0_0_rgba(0,0,0,0.4)] ring-4 ring-black/30 transition hover:shadow-[0_0_60px_rgba(0,0,0,0.55)]"
+            >
+              Order on WhatsApp
+            </motion.a>
+            <Link
+              href="/shop"
+              className="inline-flex min-h-[56px] min-w-[180px] items-center justify-center rounded-full border-2 border-black/25 bg-white/10 px-8 text-base font-bold text-black backdrop-blur-sm transition hover:bg-white/20"
+            >
+              Browse shop
+            </Link>
+          </motion.div>
         </div>
       </section>
     </div>

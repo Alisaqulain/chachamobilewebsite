@@ -4,8 +4,7 @@ import { CartProvider } from "@/components/CartProvider";
 import Navbar from "@/components/Navbar";
 import MainShell from "@/components/MainShell";
 import Footer from "@/components/Footer";
-import WhatsAppFloat from "@/components/WhatsAppFloat";
-import MobileCallFloat from "@/components/MobileCallFloat";
+import { ConversionProvider } from "@/components/conversion/ConversionProvider";
 import ScrollToTop from "@/components/ScrollToTop";
 import SeoJsonLd from "@/components/SeoJsonLd";
 import {
@@ -136,12 +135,12 @@ export default function RootLayout({ children }) {
       <body className="app-site-shell flex min-h-dvh flex-col antialiased">
         <SeoJsonLd />
         <CartProvider>
-          <Navbar />
-          <MainShell>{children}</MainShell>
-          <Footer />
-          <WhatsAppFloat />
-          <MobileCallFloat />
-          <ScrollToTop />
+          <ConversionProvider>
+            <Navbar />
+            <MainShell>{children}</MainShell>
+            <Footer />
+            <ScrollToTop />
+          </ConversionProvider>
         </CartProvider>
       </body>
     </html>

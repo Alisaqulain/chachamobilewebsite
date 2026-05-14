@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 const stats = [
   { value: 5000, suffix: "+", label: "Live SKUs", hint: "Displays to micro-flex" },
   { value: 1200, suffix: "+", label: "Partner counters", hint: "Shops & service floors" },
-  { value: 15, suffix: "+", label: "Dispatch cities", hint: "India-wide lanes" },
+  { value: 15, suffix: "+", label: "Dispatch hubs", hint: "Western UP · NCR lanes" },
   { value: 98, suffix: "%", label: "QC pass rate", hint: "Bench-ready packing" },
 ];
 
